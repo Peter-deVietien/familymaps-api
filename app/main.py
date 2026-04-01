@@ -15,6 +15,8 @@ app.add_middleware(
         "http://localhost:4200",
         "http://localhost:3000",
         "https://familymaps.onrender.com",
+        "https://wdwwa.com",
+        "https://www.wdwwa.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
