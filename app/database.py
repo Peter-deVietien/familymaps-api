@@ -51,6 +51,8 @@ class ChurchLink(Base):
     church_id = Column(Integer, ForeignKey("churches.id", ondelete="CASCADE"), nullable=False)
     url = Column(Text, nullable=False)
     platform = Column(String(50))
+    discovered_at = Column(DateTime, nullable=True, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, nullable=True)
     events_scraped_at = Column(DateTime, nullable=True)
 
     church = relationship("Church", back_populates="links")
@@ -81,6 +83,8 @@ def create_tables():
     _pending_migrations = [
         "ALTER TABLE churches ADD COLUMN discovered_at TIMESTAMP",
         "ALTER TABLE churches ADD COLUMN last_seen_at TIMESTAMP",
+        "ALTER TABLE church_links ADD COLUMN discovered_at TIMESTAMP",
+        "ALTER TABLE church_links ADD COLUMN last_seen_at TIMESTAMP",
     ]
     with engine.connect() as conn:
         for stmt in _pending_migrations:

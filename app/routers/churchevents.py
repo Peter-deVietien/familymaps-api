@@ -1,6 +1,6 @@
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -190,17 +190,28 @@ async def get_churches(zip_code: str, db: Session = Depends(get_db)):
 # Stage 2 – Gather links for every church in a zip code
 # ---------------------------------------------------------------------------
 
+LINK_STALE_DAYS = 30
+
+
 @router.post("/links/{zip_code}")
 async def gather_links(zip_code: str, db: Session = Depends(get_db)):
     churches = db.query(Church).filter_by(zip_code=zip_code).all()
     if not churches:
         raise HTTPException(status_code=404, detail="No churches found for this zip code. Run Stage 1 first.")
 
+    now = datetime.utcnow()
+    stale_cutoff = now - timedelta(days=LINK_STALE_DAYS)
     total_new = 0
+    skipped = 0
+
     for church in churches:
-        existing_urls = {
-            lk.url.rstrip("/").lower()
-            for lk in db.query(ChurchLink).filter_by(church_id=church.id).all()
+        if church.links_updated_at and church.links_updated_at > stale_cutoff:
+            skipped += 1
+            continue
+
+        existing_links = db.query(ChurchLink).filter_by(church_id=church.id).all()
+        existing_map: dict[str, ChurchLink] = {
+            lk.url.rstrip("/").lower(): lk for lk in existing_links
         }
 
         example = '[{"url": "https://...", "platform": "website"}]'
@@ -226,18 +237,22 @@ async def gather_links(zip_code: str, db: Session = Depends(get_db)):
             url = link_item.get("url", "").strip()
             if not url:
                 continue
-            if url.rstrip("/").lower() in existing_urls:
-                continue
-            church_link = ChurchLink(
-                church_id=church.id,
-                url=url,
-                platform=link_item.get("platform", "other"),
-            )
-            db.add(church_link)
-            existing_urls.add(url.rstrip("/").lower())
-            total_new += 1
+            norm_url = url.rstrip("/").lower()
+            if norm_url in existing_map:
+                existing_map[norm_url].last_seen_at = now
+            else:
+                church_link = ChurchLink(
+                    church_id=church.id,
+                    url=url,
+                    platform=link_item.get("platform", "other"),
+                    discovered_at=now,
+                    last_seen_at=now,
+                )
+                db.add(church_link)
+                existing_map[norm_url] = church_link
+                total_new += 1
 
-        church.links_updated_at = datetime.utcnow()
+        church.links_updated_at = now
 
     db.commit()
 
@@ -246,6 +261,7 @@ async def gather_links(zip_code: str, db: Session = Depends(get_db)):
     return {
         "zip_code": zip_code,
         "new_links": total_new,
+        "skipped_churches": skipped,
         "total_links": total_links,
         "churches": [_church_with_links_dict(c) for c in churches],
     }
