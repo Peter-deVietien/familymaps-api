@@ -67,9 +67,9 @@ class ChurchEvent(Base):
     source_link_id = Column(Integer, ForeignKey("church_links.id", ondelete="SET NULL"), nullable=True)
     name = Column(String(500), nullable=False)
     description = Column(Text)
-    event_date = Column(String(100))
-    event_time = Column(Text)
-    location = Column(Text)
+    event_date = Column(String(20))
+    event_time = Column(String(50))
+    location = Column(String(500))
     image_url = Column(Text)
     source_url = Column(Text)
 
@@ -85,9 +85,6 @@ def create_tables():
         "ALTER TABLE churches ADD COLUMN last_seen_at TIMESTAMP",
         "ALTER TABLE church_links ADD COLUMN discovered_at TIMESTAMP",
         "ALTER TABLE church_links ADD COLUMN last_seen_at TIMESTAMP",
-        "ALTER TABLE church_events ALTER COLUMN event_date TYPE VARCHAR(100)",
-        "ALTER TABLE church_events ALTER COLUMN event_time TYPE TEXT",
-        "ALTER TABLE church_events ALTER COLUMN location TYPE TEXT",
     ]
     with engine.connect() as conn:
         try:

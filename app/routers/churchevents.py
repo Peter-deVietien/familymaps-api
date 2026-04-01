@@ -325,9 +325,9 @@ async def _scrape_link(link_id: int, church_id: int, url: str, semaphore: asynci
             "link_id": link_id,
             "name": (ev.get("name") or "Unnamed Event")[:500],
             "description": ev.get("description", ""),
-            "event_date": (ev.get("date") or "")[:100],
-            "event_time": ev.get("time", ""),
-            "location": ev.get("location", ""),
+            "event_date": (ev.get("date") or "")[:20],
+            "event_time": (ev.get("time") or "")[:50],
+            "location": (ev.get("location") or "")[:500],
             "image_url": ev.get("image_url", ""),
             "source_url": url,
         }
