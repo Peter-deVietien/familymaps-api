@@ -268,8 +268,30 @@ async def gather_links(zip_code: str, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
-# Stage 3 – Extract events from every link
+# Stage 3 – Extract events from event-worthy links
 # ---------------------------------------------------------------------------
+
+SKIP_PLATFORMS = {
+    "instagram", "youtube", "twitter/x", "twitter", "x",
+    "linkedin", "pinterest", "threads", "bluesky", "tiktok",
+    "yelp", "mapquest", "faithstreet", "linktree",
+}
+
+EVENT_STALE_DAYS = 7
+
+
+def _is_event_worthy(link: ChurchLink) -> bool:
+    """Skip social media profiles and directory listings that won't have scrapable events."""
+    if link.platform and link.platform.lower() in SKIP_PLATFORMS:
+        return False
+    url_lower = (link.url or "").lower()
+    skip_domains = [
+        "instagram.com", "youtube.com", "youtu.be", "twitter.com",
+        "x.com", "linkedin.com", "pinterest.com", "threads.net",
+        "tiktok.com", "yelp.com", "mapquest.com", "linktree",
+    ]
+    return not any(d in url_lower for d in skip_domains)
+
 
 @router.post("/events/{zip_code}")
 async def extract_events(zip_code: str, db: Session = Depends(get_db)):
@@ -277,20 +299,34 @@ async def extract_events(zip_code: str, db: Session = Depends(get_db)):
     if not churches:
         raise HTTPException(status_code=404, detail="No churches found. Run Stage 1 first.")
 
-    all_links = []
+    now = datetime.utcnow()
+    stale_cutoff = now - timedelta(days=EVENT_STALE_DAYS)
+
+    worthy_links = []
     for church in churches:
         links = db.query(ChurchLink).filter_by(church_id=church.id).all()
-        all_links.extend(links)
+        for link in links:
+            if not _is_event_worthy(link):
+                continue
+            if link.events_scraped_at and link.events_scraped_at > stale_cutoff:
+                continue
+            worthy_links.append(link)
 
-    if not all_links:
-        raise HTTPException(status_code=404, detail="No links found. Run Stage 2 first.")
-
-    db.query(ChurchEvent).filter(
-        ChurchEvent.church_id.in_([c.id for c in churches])
-    ).delete(synchronize_session=False)
+    if not worthy_links:
+        existing_events = (
+            db.query(ChurchEvent)
+            .filter(ChurchEvent.church_id.in_([c.id for c in churches]))
+            .count()
+        )
+        if existing_events:
+            return await get_events(zip_code, db)
+        raise HTTPException(
+            status_code=404,
+            detail="No scrapable links found. Run Stage 2 first, or all links were recently scraped.",
+        )
 
     total_events = 0
-    for link in all_links:
+    for link in worthy_links:
         example = '[{"name": "...", "description": "...", "date": "2025-06-15", "time": "10:00 AM", "location": "...", "image_url": ""}]'
         prompt = (
             f"Visit this URL: {link.url}\n"
@@ -313,6 +349,9 @@ async def extract_events(zip_code: str, db: Session = Depends(get_db)):
         if not isinstance(events_data, list):
             events_data = events_data.get("events", []) if isinstance(events_data, dict) else []
 
+        # Remove old events from this specific link before inserting fresh ones
+        db.query(ChurchEvent).filter_by(source_link_id=link.id).delete()
+
         for ev in events_data:
             event = ChurchEvent(
                 church_id=link.church_id,
@@ -328,7 +367,7 @@ async def extract_events(zip_code: str, db: Session = Depends(get_db)):
             db.add(event)
             total_events += 1
 
-        link.events_scraped_at = datetime.utcnow()
+        link.events_scraped_at = now
 
     db.commit()
 
