@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, DateTime, ForeignKey, Integer, String, Text, create_engine,
+    Column, DateTime, ForeignKey, Integer, String, Text, create_engine, text,
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
@@ -35,6 +35,8 @@ class Church(Base):
     name = Column(String(500), nullable=False)
     denomination = Column(String(200))
     address = Column(String(500))
+    discovered_at = Column(DateTime, nullable=True, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, nullable=True)
     links_updated_at = Column(DateTime, nullable=True)
 
     zip_lookup = relationship("ZipLookup", back_populates="churches")
@@ -75,6 +77,18 @@ class ChurchEvent(Base):
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
+
+    _pending_migrations = [
+        "ALTER TABLE churches ADD COLUMN discovered_at TIMESTAMP",
+        "ALTER TABLE churches ADD COLUMN last_seen_at TIMESTAMP",
+    ]
+    with engine.connect() as conn:
+        for stmt in _pending_migrations:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception:
+                conn.rollback()
 
 
 def get_db():

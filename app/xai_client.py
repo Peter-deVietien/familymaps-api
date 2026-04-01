@@ -62,7 +62,7 @@ async def llm_web_search(prompt: str, system_prompt: str = "You are a web resear
                 ],
                 "temperature": 0.3,
                 "search_parameters": {
-                    "mode": "auto",
+                    "mode": "on",
                 },
             },
         )

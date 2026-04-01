@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import Church, ChurchEvent, ChurchLink, ZipLookup, get_db
-from app.xai_client import llm_call, llm_web_search
+from app.xai_client import llm_web_search
 
 logger = logging.getLogger(__name__)
 
@@ -18,70 +19,158 @@ class ChurchesRequest(BaseModel):
     force: bool = False
 
 
+def _normalize_name(name: str) -> str:
+    """Lowercase, strip punctuation/whitespace for fuzzy matching."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def _merge_churches(
+    db: Session,
+    zip_code: str,
+    found_items: list[dict],
+    existing: list[Church],
+) -> tuple[list[Church], int]:
+    """Merge newly found churches with existing DB rows. Returns (all_churches, new_count)."""
+    existing_map: dict[str, Church] = {}
+    for c in existing:
+        existing_map[_normalize_name(c.name)] = c
+
+    now = datetime.utcnow()
+    new_count = 0
+
+    for item in found_items:
+        raw_name = item.get("name", "").strip()
+        if not raw_name or raw_name.lower() == "unknown":
+            continue
+        norm = _normalize_name(raw_name)
+        if norm in existing_map:
+            church = existing_map[norm]
+            church.last_seen_at = now
+            if item.get("denomination"):
+                church.denomination = item["denomination"]
+            if item.get("address") and not church.address:
+                church.address = item["address"]
+        else:
+            church = Church(
+                zip_code=zip_code,
+                name=raw_name,
+                denomination=item.get("denomination", ""),
+                address=item.get("address", ""),
+                discovered_at=now,
+                last_seen_at=now,
+            )
+            db.add(church)
+            existing_map[norm] = church
+            new_count += 1
+
+    return list(existing_map.values()), new_count
+
+
 # ---------------------------------------------------------------------------
-# Stage 1 – Discover churches for a zip code
+# Stage 1 – Discover churches for a zip code (web search, multi-pass)
 # ---------------------------------------------------------------------------
 
 @router.post("/churches")
 async def find_churches(req: ChurchesRequest, db: Session = Depends(get_db)):
     zip_lookup = db.query(ZipLookup).filter_by(zip_code=req.zip_code).first()
+    existing = db.query(Church).filter_by(zip_code=req.zip_code).all()
 
     if zip_lookup and zip_lookup.churches_updated_at and not req.force:
-        churches = db.query(Church).filter_by(zip_code=req.zip_code).all()
         return {
             "zip_code": req.zip_code,
             "cached": True,
             "churches_updated_at": zip_lookup.churches_updated_at.isoformat(),
-            "churches": [_church_dict(c) for c in churches],
+            "churches": [_church_dict(c) for c in existing],
         }
-
-    example = '{"city": "...", "state": "...", "churches": [{"name": "...", "denomination": "...", "address": "..."}]}'
-    prompt = (
-        f"List all churches, places of worship, and religious organizations "
-        f"located in or near zip code {req.zip_code}. For each, provide: "
-        f"name, denomination (or 'non-denominational'), and street address. "
-        f"Also provide the city and state for this zip code. "
-        f"Return JSON in this exact format: {example}"
-    )
-
-    try:
-        data = await llm_call(prompt)
-    except Exception as e:
-        logger.exception("xAI call failed for Stage 1")
-        raise HTTPException(status_code=502, detail=f"xAI API error: {e}")
-
-    if req.force and zip_lookup:
-        db.query(Church).filter_by(zip_code=req.zip_code).delete()
 
     if not zip_lookup:
         zip_lookup = ZipLookup(zip_code=req.zip_code)
         db.add(zip_lookup)
+        db.flush()
 
-    zip_lookup.city = data.get("city", "")
-    zip_lookup.state = data.get("state", "")
+    example = '{"city":"...","state":"...","churches":[{"name":"...","denomination":"...","address":"..."}]}'
+
+    # Pass 1: broad web search for churches & places of worship
+    prompt_1 = (
+        f"Search the web for a comprehensive list of ALL churches, places of worship, "
+        f"and religious congregations in or near zip code {req.zip_code}. "
+        f"Include every denomination: Catholic, Baptist, Methodist, Presbyterian, "
+        f"Episcopal, Lutheran, Pentecostal, non-denominational, Jewish synagogues, "
+        f"mosques, and any other house of worship. "
+        f"Check Google Maps, Yelp, Yellow Pages, and church directories. "
+        f"Also provide the city and state for this zip code. "
+        f"Return JSON: {example}"
+    )
+
+    all_found: list[dict] = []
+    city = ""
+    state = ""
+
+    try:
+        data = await llm_web_search(prompt_1)
+        city = data.get("city", "")
+        state = data.get("state", "")
+        all_found.extend(data.get("churches", []))
+    except Exception as e:
+        logger.exception("xAI web search failed for Stage 1 pass 1")
+        raise HTTPException(status_code=502, detail=f"xAI API error: {e}")
+
+    # Pass 2: ask for anything missed, providing the names already found
+    already_names = [c.get("name", "") for c in all_found]
+    already_str = ", ".join(already_names) if already_names else "(none found yet)"
+
+    prompt_2 = (
+        f"I already found these churches/places of worship in zip code {req.zip_code}: "
+        f"{already_str}. "
+        f"Search the web again for any churches, congregations, ministries, fellowships, "
+        f"chapels, temples, mosques, or synagogues in or near {req.zip_code} that are NOT "
+        f"in the list above. Check Google Maps, church directories, Yelp, and local listings. "
+        f"Return ONLY the ones not already listed. "
+        f'Return JSON: {{"churches":[{{"name":"...","denomination":"...","address":"..."}}]}}'
+    )
+
+    try:
+        data2 = await llm_web_search(prompt_2)
+        all_found.extend(data2.get("churches", []))
+    except Exception:
+        logger.warning("Stage 1 pass 2 failed; continuing with pass 1 results")
+
+    # Merge found churches with any existing DB records
+    all_churches, new_count = _merge_churches(db, req.zip_code, all_found, existing)
+
+    zip_lookup.city = city or zip_lookup.city or ""
+    zip_lookup.state = state or zip_lookup.state or ""
     zip_lookup.churches_updated_at = datetime.utcnow()
 
-    new_churches = []
-    for item in data.get("churches", []):
-        church = Church(
-            zip_code=req.zip_code,
-            name=item.get("name", "Unknown"),
-            denomination=item.get("denomination", ""),
-            address=item.get("address", ""),
-        )
-        db.add(church)
-        new_churches.append(church)
-
     db.commit()
-    for c in new_churches:
+    for c in all_churches:
         db.refresh(c)
 
     return {
         "zip_code": req.zip_code,
         "cached": False,
+        "new_churches": new_count,
+        "total_churches": len(all_churches),
         "churches_updated_at": zip_lookup.churches_updated_at.isoformat(),
-        "churches": [_church_dict(c) for c in new_churches],
+        "churches": [_church_dict(c) for c in all_churches],
     }
+
+
+@router.get("/zip-codes")
+async def list_zip_codes(db: Session = Depends(get_db)):
+    lookups = db.query(ZipLookup).filter(ZipLookup.churches_updated_at.isnot(None)).all()
+    result = []
+    for zl in lookups:
+        count = db.query(Church).filter_by(zip_code=zl.zip_code).count()
+        result.append({
+            "zip_code": zl.zip_code,
+            "city": zl.city,
+            "state": zl.state,
+            "church_count": count,
+            "churches_updated_at": zl.churches_updated_at.isoformat() if zl.churches_updated_at else None,
+        })
+    result.sort(key=lambda x: x["zip_code"])
+    return result
 
 
 @router.get("/churches/{zip_code}")
@@ -107,9 +196,12 @@ async def gather_links(zip_code: str, db: Session = Depends(get_db)):
     if not churches:
         raise HTTPException(status_code=404, detail="No churches found for this zip code. Run Stage 1 first.")
 
-    total_links = 0
+    total_new = 0
     for church in churches:
-        db.query(ChurchLink).filter_by(church_id=church.id).delete()
+        existing_urls = {
+            lk.url.rstrip("/").lower()
+            for lk in db.query(ChurchLink).filter_by(church_id=church.id).all()
+        }
 
         example = '[{"url": "https://...", "platform": "website"}]'
         prompt = (
@@ -134,21 +226,26 @@ async def gather_links(zip_code: str, db: Session = Depends(get_db)):
             url = link_item.get("url", "").strip()
             if not url:
                 continue
+            if url.rstrip("/").lower() in existing_urls:
+                continue
             church_link = ChurchLink(
                 church_id=church.id,
                 url=url,
                 platform=link_item.get("platform", "other"),
             )
             db.add(church_link)
-            total_links += 1
+            existing_urls.add(url.rstrip("/").lower())
+            total_new += 1
 
         church.links_updated_at = datetime.utcnow()
 
     db.commit()
 
     churches = db.query(Church).filter_by(zip_code=zip_code).all()
+    total_links = sum(len(c.links) for c in churches)
     return {
         "zip_code": zip_code,
+        "new_links": total_new,
         "total_links": total_links,
         "churches": [_church_with_links_dict(c) for c in churches],
     }
@@ -268,6 +365,8 @@ def _church_dict(c: Church) -> dict:
         "name": c.name,
         "denomination": c.denomination,
         "address": c.address,
+        "discovered_at": c.discovered_at.isoformat() if c.discovered_at else None,
+        "last_seen_at": c.last_seen_at.isoformat() if c.last_seen_at else None,
         "links_updated_at": c.links_updated_at.isoformat() if c.links_updated_at else None,
     }
 
