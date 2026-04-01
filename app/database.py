@@ -90,6 +90,10 @@ def create_tables():
         "ALTER TABLE church_events ALTER COLUMN location TYPE TEXT",
     ]
     with engine.connect() as conn:
+        try:
+            conn.execute(text("SET lock_timeout = '5s'"))
+        except Exception:
+            pass
         for stmt in _pending_migrations:
             try:
                 conn.execute(text(stmt))
