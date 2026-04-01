@@ -14,6 +14,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:4200",
         "http://localhost:3000",
+        "https://familymaps.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
