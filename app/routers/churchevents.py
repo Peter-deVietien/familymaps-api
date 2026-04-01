@@ -35,14 +35,13 @@ async def find_churches(req: ChurchesRequest, db: Session = Depends(get_db)):
             "churches": [_church_dict(c) for c in churches],
         }
 
+    example = '{"city": "...", "state": "...", "churches": [{"name": "...", "denomination": "...", "address": "..."}]}'
     prompt = (
         f"List all churches, places of worship, and religious organizations "
         f"located in or near zip code {req.zip_code}. For each, provide: "
         f"name, denomination (or 'non-denominational'), and street address. "
         f"Also provide the city and state for this zip code. "
-        f'Return JSON in this exact format: '
-        f'{{"city": "...", "state": "...", "churches": ['
-        f'{{"name": "...", "denomination": "...", "address": "..."}}]}}'
+        f"Return JSON in this exact format: {example}"
     )
 
     try:
@@ -112,12 +111,13 @@ async def gather_links(zip_code: str, db: Session = Depends(get_db)):
     for church in churches:
         db.query(ChurchLink).filter_by(church_id=church.id).delete()
 
+        example = '[{"url": "https://...", "platform": "website"}]'
         prompt = (
             f"Search the web for '{church.name}' located at '{church.address}'. "
             f"Find all online presence: official website, Facebook page, Instagram, "
             f"YouTube, Twitter/X, event pages, community calendars. "
             f"Return a JSON array of objects with 'url' and 'platform' fields. "
-            f"Example: [{{"url": "https://...", "platform": "website"}}]. "
+            f"Example: {example}. "
             f"If you find nothing, return an empty array []."
         )
 
@@ -178,13 +178,14 @@ async def extract_events(zip_code: str, db: Session = Depends(get_db)):
 
     total_events = 0
     for link in all_links:
+        example = '[{"name": "...", "description": "...", "date": "2025-06-15", "time": "10:00 AM", "location": "...", "image_url": ""}]'
         prompt = (
             f"Visit this URL: {link.url}\n"
             f"Extract all upcoming events, services, or gatherings from this page. "
             f"For each event, provide: name, description, date (ISO format YYYY-MM-DD if possible), "
             f"time, location, and any image URL. "
             f"Return a JSON array of objects. If no events are found, return an empty array [].\n"
-            f"Example: [{{"name": "...", "description": "...", "date": "2025-06-15", "time": "10:00 AM", "location": "...", "image_url": ""}}]"
+            f"Example: {example}"
         )
 
         try:
