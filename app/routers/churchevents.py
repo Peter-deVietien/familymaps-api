@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 from datetime import datetime, timedelta
@@ -293,6 +294,47 @@ def _is_event_worthy(link: ChurchLink) -> bool:
     return not any(d in url_lower for d in skip_domains)
 
 
+async def _scrape_link(link_id: int, church_id: int, url: str, semaphore: asyncio.Semaphore) -> list[dict]:
+    """Call xAI to extract events from a single link, respecting concurrency limit."""
+    example = '[{"name": "...", "description": "...", "date": "2025-06-15", "time": "10:00 AM", "location": "...", "image_url": ""}]'
+    prompt = (
+        f"Visit this URL: {url}\n"
+        f"Extract all upcoming events, services, or gatherings from this page. "
+        f"For each event, provide: name, description, date (ISO format YYYY-MM-DD if possible), "
+        f"time, location, and any image URL. "
+        f"Return a JSON array of objects. If no events are found, return an empty array [].\n"
+        f"Example: {example}"
+    )
+
+    async with semaphore:
+        try:
+            events_data = await llm_web_search(
+                prompt,
+                system_prompt="You are an event extraction assistant. Return JSON only.",
+            )
+        except Exception:
+            logger.exception(f"xAI event extraction failed for link: {url}")
+            return []
+
+    if not isinstance(events_data, list):
+        events_data = events_data.get("events", []) if isinstance(events_data, dict) else []
+
+    return [
+        {
+            "church_id": church_id,
+            "link_id": link_id,
+            "name": (ev.get("name") or "Unnamed Event")[:500],
+            "description": ev.get("description", ""),
+            "event_date": (ev.get("date") or "")[:100],
+            "event_time": ev.get("time", ""),
+            "location": ev.get("location", ""),
+            "image_url": ev.get("image_url", ""),
+            "source_url": url,
+        }
+        for ev in events_data
+    ]
+
+
 @router.post("/events/{zip_code}")
 async def extract_events(zip_code: str, db: Session = Depends(get_db)):
     churches = db.query(Church).filter_by(zip_code=zip_code).all()
@@ -325,49 +367,35 @@ async def extract_events(zip_code: str, db: Session = Depends(get_db)):
             detail="No scrapable links found. Run Stage 2 first, or all links were recently scraped.",
         )
 
+    semaphore = asyncio.Semaphore(5)
+    tasks = [
+        _scrape_link(link.id, link.church_id, link.url, semaphore)
+        for link in worthy_links
+    ]
+    results = await asyncio.gather(*tasks)
+
+    link_map = {link.id: link for link in worthy_links}
     total_events = 0
-    for link in worthy_links:
-        example = '[{"name": "...", "description": "...", "date": "2025-06-15", "time": "10:00 AM", "location": "...", "image_url": ""}]'
-        prompt = (
-            f"Visit this URL: {link.url}\n"
-            f"Extract all upcoming events, services, or gatherings from this page. "
-            f"For each event, provide: name, description, date (ISO format YYYY-MM-DD if possible), "
-            f"time, location, and any image URL. "
-            f"Return a JSON array of objects. If no events are found, return an empty array [].\n"
-            f"Example: {example}"
-        )
-
-        try:
-            events_data = await llm_web_search(
-                prompt,
-                system_prompt="You are an event extraction assistant. Return JSON only.",
-            )
-        except Exception:
-            logger.exception(f"xAI event extraction failed for link: {link.url}")
+    for events_batch in results:
+        if not events_batch:
             continue
-
-        if not isinstance(events_data, list):
-            events_data = events_data.get("events", []) if isinstance(events_data, dict) else []
-
-        # Remove old events from this specific link before inserting fresh ones
-        db.query(ChurchEvent).filter_by(source_link_id=link.id).delete()
-
-        for ev in events_data:
+        link_id = events_batch[0]["link_id"]
+        db.query(ChurchEvent).filter_by(source_link_id=link_id).delete()
+        for ev in events_batch:
             event = ChurchEvent(
-                church_id=link.church_id,
-                source_link_id=link.id,
-                name=ev.get("name", "Unnamed Event"),
-                description=ev.get("description", ""),
-                event_date=ev.get("date", ""),
-                event_time=ev.get("time", ""),
-                location=ev.get("location", ""),
-                image_url=ev.get("image_url", ""),
-                source_url=link.url,
+                church_id=ev["church_id"],
+                source_link_id=ev["link_id"],
+                name=ev["name"],
+                description=ev["description"],
+                event_date=ev["event_date"],
+                event_time=ev["event_time"],
+                location=ev["location"],
+                image_url=ev["image_url"],
+                source_url=ev["source_url"],
             )
             db.add(event)
             total_events += 1
-
-        link.events_scraped_at = now
+        link_map[link_id].events_scraped_at = now
 
     db.commit()
 
