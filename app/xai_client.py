@@ -12,14 +12,38 @@ MODEL = "grok-4-1-fast-non-reasoning"
 
 
 def _parse_json_response(text: str) -> list | dict:
-    """Extract JSON from a response that may contain markdown fences."""
+    """Extract the first JSON object or array from LLM output."""
     cleaned = text.strip()
-    if cleaned.startswith("```"):
-        first_newline = cleaned.index("\n")
-        cleaned = cleaned[first_newline + 1:]
-        if cleaned.endswith("```"):
-            cleaned = cleaned[:-3].strip()
-    return json.loads(cleaned)
+
+    # Strip markdown fences
+    if "```" in cleaned:
+        parts = cleaned.split("```")
+        for part in parts[1:]:
+            block = part.split("\n", 1)[-1] if "\n" in part else part
+            block = block.strip()
+            if block.startswith(("{", "[")):
+                try:
+                    return json.loads(block)
+                except json.JSONDecodeError:
+                    pass
+
+    # Try parsing the whole string
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Find first { or [ and use json.JSONDecoder to grab just the object/array
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(cleaned):
+        if ch in ("{", "["):
+            try:
+                obj, _ = decoder.raw_decode(cleaned, i)
+                return obj
+            except json.JSONDecodeError:
+                continue
+
+    raise ValueError(f"No JSON found in response: {cleaned[:200]}")
 
 
 def _extract_text(response_json: dict) -> str:
