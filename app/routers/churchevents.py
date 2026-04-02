@@ -183,7 +183,7 @@ async def get_churches(zip_code: str, db: Session = Depends(get_db)):
         "city": zip_lookup.city if zip_lookup else None,
         "state": zip_lookup.state if zip_lookup else None,
         "churches_updated_at": zip_lookup.churches_updated_at.isoformat() if zip_lookup and zip_lookup.churches_updated_at else None,
-        "churches": [_church_dict(c) for c in churches],
+        "churches": [_church_with_links_dict(c) for c in churches],
     }
 
 
