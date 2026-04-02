@@ -1,10 +1,14 @@
+import logging
 import os
+import threading
 from datetime import datetime
 
 from sqlalchemy import (
     Column, DateTime, ForeignKey, Integer, String, Text, create_engine,
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./churchevents.db")
 
@@ -78,7 +82,11 @@ class ChurchEvent(Base):
 
 
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    t = threading.Thread(target=Base.metadata.create_all, kwargs={"bind": engine})
+    t.start()
+    t.join(timeout=10)
+    if t.is_alive():
+        logger.warning("create_tables timed out after 10s, continuing startup")
 
 
 def get_db():
