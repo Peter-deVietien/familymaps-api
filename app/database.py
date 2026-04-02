@@ -1,6 +1,4 @@
-import logging
 import os
-import threading
 from datetime import datetime
 
 from sqlalchemy import (
@@ -8,14 +6,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
-logger = logging.getLogger(__name__)
-
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./churchevents.db")
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_size=2, max_overflow=3, pool_timeout=10)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -82,11 +78,7 @@ class ChurchEvent(Base):
 
 
 def create_tables():
-    t = threading.Thread(target=Base.metadata.create_all, kwargs={"bind": engine})
-    t.start()
-    t.join(timeout=10)
-    if t.is_alive():
-        logger.warning("create_tables timed out after 10s, continuing startup")
+    pass
 
 
 def get_db():
