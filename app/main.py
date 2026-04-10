@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import create_tables
-from app.routers import geodata, demographics, churchevents
+from app.routers import geodata, demographics, churchevents, births
 
 
 @asynccontextmanager
@@ -37,6 +37,7 @@ app.add_middleware(
 app.include_router(geodata.router)
 app.include_router(demographics.router)
 app.include_router(churchevents.router)
+app.include_router(births.router)
 
 
 @app.get("/health")

@@ -16,3 +16,8 @@ build/
 .DS_Store
 
 .cursor/
+
+# Data files (keep download scripts, ignore raw data and outputs)
+data/*/raw-data/
+data/**/*.csv
+data/**/*.zip
