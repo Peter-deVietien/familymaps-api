@@ -16,6 +16,10 @@ Both repos are hosted on **Render**.
 - FastAPI served by Uvicorn
 - `requirements.txt` defines Python dependencies
 - Static data files in `app/data/` are included in the deploy
+- All display data is pre-baked as static JSON/TopoJSON (~19MB total)
+- Raw data pipeline (`data/`) is gitignored — only the distilled output ships
+- Auto-deploy on push to `main`
+- Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 ## Frontend Deployment
 
@@ -24,11 +28,10 @@ Both repos are hosted on **Render**.
 
 ## Open Questions
 
-<!-- NEEDS INPUT -->
-- [ ] What is the frontend production URL?
-- [ ] Is there CI/CD configured?
+- [ ] What is the frontend production URL? (currently `https://familymaps.onrender.com`)
+- [x] Is there CI/CD configured? — Yes, Render auto-deploys on push to `main`
 - [ ] Are there staging/preview environments?
-- [ ] How are data updates deployed? (re-run pipeline → rebuild → deploy?)
+- [x] How are data updates deployed? — Re-run local pipeline → regenerate `app/data/births.json` → commit & push
 
 ---
 

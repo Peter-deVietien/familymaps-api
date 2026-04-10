@@ -32,6 +32,10 @@ The birth data pipeline covers 1940–2024 at the state level, now measuring **b
 
 Nothing actively in progress.
 
+## Recently Completed
+
+- ✅ **Production deployment fixed** — births endpoint was broken on Render because `smooth_wnh.csv` was gitignored. Pre-baked display data as `app/data/births.json` (59KB). All API endpoints now serve static files from `app/data/`. Verified live at `https://api.wdwwa.com`.
+
 ## What's Next
 
 - [ ] Re-process NBER Microdata (1973-2004) with `frace` for direct both-parent WNH (~5+ hours download)
@@ -55,7 +59,8 @@ Nothing actively in progress.
 | `data/cdc_wonder/extracted_d149_both_parent_wnh.csv` | 459 rows: per-state both-parent counts (2016-2024) |
 | `data/nber_microdata/download_nber_microdata.py` | Streaming download+aggregation script |
 | `data/nber_microdata/extracted_data.csv` | 1,122 rows (51 states × 22 years) |
-| `app/routers/births.py` | API endpoint serving births data |
+| `app/data/births.json` | Pre-baked births display data (59KB, committed to git) |
+| `app/routers/births.py` | API endpoint serving births data (loads births.json) |
 
 ## Quick Decision Guide
 

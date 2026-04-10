@@ -39,6 +39,8 @@
 | 2026-04-10 | Frontend | Updated births layer labels: legend="White NH Babies Born (%)", tooltip="WNH Babies: X%" | ✅ Build passes |
 | 2026-04-10 | Wiki | Full wiki sweep: updated all files to reflect resolved both-parent methodology, D149 download complete, pre-1980 phase-in fix, frontend label changes | ✅ |
 
+| 2026-04-10 | Deploy | Pre-baked `births.json` (59KB) from `smooth_wnh.csv`; updated births router to serve static JSON instead of parsing CSV at startup. Pushed to main → Render auto-deployed. | ✅ Live at `https://api.wdwwa.com/api/births` — 85 years, 51 states verified |
+
 ---
 
 *Append new entries here. Don't modify old entries.*

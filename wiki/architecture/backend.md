@@ -59,9 +59,22 @@ app/
 
 ## Data Pipeline
 
-Birth data is read from `data/extracted_data/best_estimate.csv` by the births router at startup,
-converted to JSON (FIPS-keyed, with year types and percentages), cached in memory, and served
-via `GET /api/births`. No static JSON file is needed.
+Birth data is pre-baked as `app/data/births.json` (59KB) — a FIPS-keyed JSON with years,
+year types, and both-parent WNH percentages per state. The births router loads and caches
+this file on first request. To regenerate after updating the source data pipeline:
+
+```bash
+cd ~/familymaps-api
+python3 -c "
+import json, sys; sys.path.insert(0, '.')
+# Temporarily needs the old CSV-based builder or regenerate from smooth_wnh.csv
+from data.build_births_json import build; data = build()
+with open('app/data/births.json', 'w') as f: json.dump(data, f, separators=(',', ':'))
+"
+```
+
+All other data files (`*_demographics.json`, `*.topojson`, `US_county_percentages.json`)
+are also static files in `app/data/`, committed to git and deployed directly.
 
 See `data/overview.md` for the full data source matrix.
 
