@@ -8,6 +8,7 @@ router = APIRouter(prefix="/api/geo", tags=["geography"])
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 GEO_FILES = {
+    "us_states": "US_states_geo.topojson",
     "us_counties": "US_county_geo.topojson",
     "fl_counties": "FL_county_geo.topojson",
     "fl_tracts": "FL_tract_geo.topojson",
