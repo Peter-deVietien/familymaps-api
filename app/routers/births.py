@@ -27,31 +27,23 @@ STATE_NAME_TO_FIPS = {
 _cached_response: dict | None = None
 
 
-WNH_COVERAGE_THRESHOLD = 46  # out of 51 states+DC — use WNH when >= this many report it
-
-
 def _build_births_data() -> dict:
-    """Read best_estimate.csv and convert to the BirthsData JSON shape:
+    """Read smooth_wnh.csv and convert to the BirthsData JSON shape.
 
-    {
-      years: ["1940", "1941", ...],
-      yearTypes: { "1940": "white", ..., "1995": "white_nh", ... },
-      states: {
-        "01": { name: "Alabama", "1940": 61.8, "1941": 62.0, ... },
-        ...
-      }
-    }
+    Uses pct_white_nh_smooth for all years — a continuous both-parent WNH
+    series (% of babies where both parents are White Non-Hispanic):
+      - 2016+: D149 actual both-parent WNH
+      - 1995-2015: CDC mother-only WNH adjusted by per-state correction factor
+      - 1978-1994: NBER/estimated mother-only WNH adjusted by correction factor
+      - Pre-1978: Estimated from pct_white, adjusted for Hispanic + both-parent
 
-    Year type is determined by WNH coverage: if >= WNH_COVERAGE_THRESHOLD states
-    report pct_white_nh for a year, that year uses "white_nh" for all states;
-    otherwise it uses "white". This avoids mixing metrics within a single year.
+    yearTypes: "white_nh" (D149 actual or CDC adjusted), "white_nh_est" (estimated).
     """
-    csv_path = DATA_DIR / "best_estimate.csv"
+    csv_path = DATA_DIR / "smooth_wnh.csv"
 
-    # First pass: collect raw data and count WNH coverage per year
     raw_rows: list[dict] = []
-    year_nh_count: dict[str, int] = {}
     all_years: set[str] = set()
+    year_methods: dict[str, set[str]] = {}
 
     with open(csv_path, newline="") as f:
         reader = csv.DictReader(f)
@@ -61,29 +53,29 @@ def _build_births_data() -> dict:
             raw_rows.append(row)
             year = row["year"]
             all_years.add(year)
-            pct_wnh = row["pct_white_nh"].strip() if row["pct_white_nh"] else ""
-            if pct_wnh:
-                year_nh_count[year] = year_nh_count.get(year, 0) + 1
+            method = row.get("wnh_method", "")
+            if year not in year_methods:
+                year_methods[year] = set()
+            year_methods[year].add(method)
 
     years = sorted(all_years)
 
-    # Determine year types based on coverage threshold
+    # Classify each year by its dominant method
     year_types: dict[str, str] = {}
     for y in years:
-        year_types[y] = "white_nh" if year_nh_count.get(y, 0) >= WNH_COVERAGE_THRESHOLD else "white"
+        methods = year_methods.get(y, set())
+        actual_methods = {"d149_both_parent", "cdc_adjusted_both_parent",
+                         "nber_adjusted_both_parent"}
+        if methods & actual_methods:
+            year_types[y] = "white_nh"
+        else:
+            year_types[y] = "white_nh_est"
 
-    # Second pass: build state data using the correct metric per year
     states: dict[str, dict] = {}
     for row in raw_rows:
         fips = STATE_NAME_TO_FIPS[row["state"]]
         year = row["year"]
-
-        if year_types[year] == "white_nh":
-            raw = row["pct_white_nh"].strip() if row["pct_white_nh"] else ""
-            if not raw:
-                raw = row["pct_white"].strip() if row["pct_white"] else ""
-        else:
-            raw = row["pct_white"].strip() if row["pct_white"] else ""
+        raw = row.get("pct_white_nh_smooth", "").strip()
 
         if not raw:
             continue
@@ -97,10 +89,10 @@ def _build_births_data() -> dict:
 
 @router.get("")
 async def get_births_data():
-    """State-level birth data by race/ethnicity, 1940-2024.
+    """State-level both-parent WNH birth data, 1940-2024.
 
-    Returns years, year metric types (white vs white_nh), and
-    per-state percentages keyed by FIPS code.
+    Returns years, year metric types, and per-state percentages
+    of births where both parents are White Non-Hispanic, keyed by FIPS.
     """
     global _cached_response
     if _cached_response is None:

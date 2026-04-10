@@ -41,16 +41,18 @@ GET /api/births → state-level birth race data, 1940-2024
 ```json
 {
   "years": ["1940", "1941", ..., "2024"],
-  "yearTypes": { "1940": "white", ..., "1995": "white_nh", ... },
+  "yearTypes": { "1940": "white_nh_est", ..., "1978": "white_nh", ... },
   "states": {
-    "01": { "name": "Alabama", "1940": 61.8, ..., "2024": 57.34 },
+    "01": { "name": "Alabama", "1940": 54.5, ..., "2024": 47.2 },
     ...
   }
 }
 ```
 
-- `yearTypes`: `"white"` = White incl. Hispanic (pre-1989), `"white_nh"` = White Non-Hispanic (1989+)
-- State keys are FIPS codes; values are percentage of births that are White (or White NH)
+- Values are **both-parent WNH** — % of births where both mother and father are White Non-Hispanic
+- `yearTypes`: `"white_nh"` = based on actual data (D149 or CDC adjusted), `"white_nh_est"` = estimated
+- 2016+: D149 actual both-parent WNH; 1995-2015: CDC mother-only adjusted by correction factor; pre-1995: estimated
+- State keys are FIPS codes
 
 ## CORS
 

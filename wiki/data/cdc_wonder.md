@@ -6,15 +6,15 @@
 
 ---
 
-## Status: ✅ DOWNLOADED (3 databases + D66 Bridged Race)
+## Status: ✅ DOWNLOADED (3 databases + D66 Bridged Race + D149 Father's Race)
 
 | Field | Value |
 |-------|-------|
 | Claimed years | 1995–2024 |
-| Actual years obtained | **1995–2024** (30 years across 3 databases + bridged race) |
+| Actual years obtained | **1995–2024** (30 years across 3 databases + bridged race + D149 expanded) |
 | Geographic level | State (downloaded via Playwright browser automation) |
-| Race/ethnicity | Yes (1995+) — White NH clearly available |
-| Total data rows | **33,302** (D66: 15,290 + D27: 3,842 + D10: 14,170) |
+| Race/ethnicity | Yes (1995+) — White NH clearly available; D149 has father's race too |
+| Total data rows | **45,695** (D66: 15,290 + D27: 3,842 + D10: 14,170 + D149: 12,393) |
 | Method | Playwright browser automation (headless) — submits form, scrapes results table from HTML |
 | Columns | Year, State, Race, Hispanic Origin, Births (tab-separated) |
 | Suppression | Cells <10 births suppressed; some rows with zero or suppressed births hidden by default |
@@ -220,4 +220,45 @@ CDC WONDER White NH births exactly match KFF "White" births for all checked stat
 
 ---
 
-*Last updated: 2026-04-10 (bridged race re-query complete; 2,448 extracted rows; 2007-2015 race gap resolved)*
+## D149 Expanded Database — Father's Race (2026-04-10)
+
+**Script:** `download_d149_father_race.py` (Playwright scraper)
+
+The D149 (Expanded Natality 2016-2024) database is the **only CDC WONDER database with father's race**. The regular D10/D27/D66 databases only have mother's characteristics.
+
+### Query Configuration
+
+| Setting | Value |
+|---------|-------|
+| URL | https://wonder.cdc.gov/natality-expanded-current.html |
+| Group By | Year (`D149.V20`) × State (`D149.V21-level1`) × Father's Race 6 (`D149.V54`) × Father's Hispanic Origin (`D149.V53`) |
+| Filter | Mother's Race = White (`V_D149.V42` = `2106-3`), Mother's Hispanic = Not Hispanic (`V_D149.V43` = `2186-5`) |
+| Output | Births by father's race/ethnicity for WNH mothers, by state×year |
+
+### Results
+
+| File | Rows | Description |
+|------|------|-------------|
+| `raw-data/cdc_wonder_D149_wnh_mother_by_father_race.txt` | 12,393 (after dedup) | Raw father race breakdown for WNH mothers |
+| `extracted_d149_both_parent_wnh.csv` | 459 | Per-state both-parent WNH counts (51 states × 9 years) |
+
+### Key Findings (2024 national)
+
+- **Mother-only WNH:** 49.1% of births
+- **Both-parent WNH:** 39.1% of births (10pt gap)
+- **Father unknown:** ~9% of WNH-mother births have father's race unknown
+- **Father non-WNH:** ~11% of WNH-mother births have a non-WNH father
+- **National correction factor:** 0.794 (range: 0.578 Hawaii to 0.878 New Hampshire)
+
+### D149 Variable Codes Reference
+
+| Variable | Code | Values |
+|----------|------|--------|
+| Father's Single Race 6 | `D149.V54` | `2106-3`=White, `1002-5`=AIAN, `A`=Asian, `2054-5`=Black, `NHOPI`=NHOPI, `M`=Multi, `UNK`/`NR`=Unknown |
+| Father's Hispanic Origin | `D149.V53` | `2135-2`=Hispanic, `2186-5`=Not Hispanic, `9`=Unknown |
+| Mother's Single Race 6 | `D149.V42` | Same codes as father |
+| Mother's Hispanic Origin | `D149.V43` | Same codes as father |
+
+---
+
+*Last updated: 2026-04-10 (D149 father's race downloaded; both-parent WNH pipeline complete)*

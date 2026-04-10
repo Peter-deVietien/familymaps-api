@@ -22,6 +22,22 @@
 | 2026-04-10 | Frontend | Updated `single-ratio.component.ts` to fetch births from API instead of static `births-data.json` | ✅ Tested — map loads, year nav works |
 
 | 2026-04-10 | Repo | Undid accidental `git add .`; updated `.gitignore` to exclude `data/*/raw-data/`, `data/**/*.csv`, `data/**/*.zip` | ✅ Only 8 Python scripts trackable in data/ |
+| 2026-04-10 | API | Added `/api/geo/us_states` endpoint (moved `states-10m.json` → `US_states_geo.topojson`) | ✅ Pushed |
+| 2026-04-10 | Frontend | Deleted `births-data.json` + `states-10m.json` from `public/`; all data now fetched from API | ✅ Pushed |
+
+| 2026-04-10 | Research | Investigated smooth WNH series: searched NCHS NVSR, VSUS volumes, NCHS Series 24 (Hispanic parentage 1983-85), Census Hispanic % by state (1980/1990), CDC data.gov, KIDS COUNT | No pre-aggregated state-level WNH birth data exists before 1989 |
+| 2026-04-10 | Pipeline | Built `data/build_smooth_wnh.py` — hybrid estimation: CDC actual (1995+), validated NBER actual (1978-1994 where quality confirmed), Census-calibrated estimation (pre-1978). Output: `smooth_wnh.csv` (4,317 rows) | ✅ Smooth series; 1994→1995 avg jump 0.00pt; 48/51 states validated |
+| 2026-04-10 | API+FE | Integrated smooth WNH: `births.py` reads `smooth_wnh.csv`, uses `pct_white_nh_smooth` for all years. Frontend labels pre-1978 as "est.", all years now "White NH Births". Old -8.3pt avg cliff → -0.16pt avg. | ✅ Both repos updated, builds pass |
+
+| 2026-04-10 | Research | Identified mother-only vs both-parent WNH methodology issue: post-1980 data only captures mother's race, not baby's | 🔴 10pt gap nationally between mother-only WNH (49.1%) and both-parent WNH (39.1%) in 2024 |
+| 2026-04-10 | CDC WONDER D149 | Downloaded expanded natality 2016-2024 with father's race/ethnicity (Playwright scrape) | ✅ 12,393 rows (Year × State × Father Race × Father Hispanic, filtered to WNH mothers) |
+| 2026-04-10 | Pipeline | Built `extract_d149_both_parent_wnh.py` — computes both-parent WNH from D149 data | ✅ 459 state×year rows; per-state correction factors computed |
+| 2026-04-10 | Pipeline | Updated `build_smooth_wnh.py` to use both-parent WNH: D149 actual for 2016+, correction factor for earlier years (avg factor 0.794) | ✅ All 4,317 rows updated; smooth series maintained |
+| 2026-04-10 | API | Updated `births.py` docstrings to reflect both-parent WNH methodology | ✅ |
+| 2026-04-10 | Wiki | Updated constitution, vision/births-choropleth, learnings/race-categories, learnings/data-quirks, data/overview to document both-parent WNH methodology | ✅ |
+| 2026-04-10 | Pipeline | Fixed pre-1980 double-correction bug: both-parent factor was applied to all years, but pre-1980 "child's race" data was already both-parent. Now: no correction pre-1980, linear phase-in 1980→2016 | ✅ Maine 1940: 81.5%→99.0%; national 1940: 69.5%→87.0% |
+| 2026-04-10 | Frontend | Updated births layer labels: legend="White NH Babies Born (%)", tooltip="WNH Babies: X%" | ✅ Build passes |
+| 2026-04-10 | Wiki | Full wiki sweep: updated all files to reflect resolved both-parent methodology, D149 download complete, pre-1980 phase-in fix, frontend label changes | ✅ |
 
 ---
 

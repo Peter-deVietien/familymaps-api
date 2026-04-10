@@ -2,15 +2,30 @@
 
 ## What It Is
 
-State-level choropleth showing % White (NH where available) births from 1940 to present, with year-by-year navigation.
+State-level choropleth showing % of births where the baby is White Non-Hispanic (both parents WNH) from 1940 to present, with year-by-year navigation.
 
 ## Current State
 
-- **Coverage:** 1940–2024 from 6 data sources (NHGIS, NBER Historical, NBER Microdata, CDC WONDER D10/D27/D66, KFF)
+- **Coverage:** 1940–2024 from 7 data sources (NHGIS, NBER Historical, NBER Microdata, CDC WONDER D10/D27/D66, CDC WONDER D149, KFF)
+- **Metric:** Both-parent WNH — % of babies where both mother and father are White Non-Hispanic
 - **Navigation:** Arrow keys + buttons to step through years
-- **Legend:** Dynamically labels "White NH" vs "White (incl. Hispanic)" based on era
-- **Data file:** `public/births-data.json` (generated from `best_estimate.csv`)
+- **Legend:** "White NH Babies Born (%)" with "est." suffix for pre-1978
+- **Tooltip:** "WNH Babies: X%"
+- **Data source:** `GET /api/births` endpoint (reads `smooth_wnh.csv`)
 - **Component:** `src/app/single-ratio/single-ratio.component.ts`
+
+## ✅ Methodology: Both-Parent WNH (Resolved 2026-04-10)
+
+Previously, data only measured mother's race/ethnicity, overstating WNH birth %. Now resolved:
+
+**How it works:**
+- **2016-2024:** CDC WONDER D149 actual both-parent WNH (father's race + Hispanic origin available in expanded database)
+- **1980-2015:** Mother-only WNH adjusted by per-state correction factor from D149, linearly phased in from 1.0 (1980) to D149 factor (2016) to account for increasing interracial marriage over time
+- **Pre-1980:** No correction needed — birth certificates used "child's race" determined algorithmically from both parents' races, so the data already reflects both-parent status. Hispanic adjustment still applied.
+
+**National impact (2024):** Mother-only WNH was 49.1%, both-parent WNH is 39.1% (10pt gap). Correction factor averages 0.794, range 0.578 (Hawaii) to 0.878 (New Hampshire).
+
+**Remaining limitation:** ~10% of births to WNH mothers have father's race "Unknown or Not Stated." These births are excluded from the both-parent WNH count in D149 data.
 
 ## Desired End State
 
@@ -32,19 +47,9 @@ Key limitations:
 - **1989–1994:** WNH available for 48–51 states
 - **1995+:** Full WNH coverage
 
-## Known Issue: 1988→1989 Metric Switch Discontinuity
+## ✅ Resolved: 1988→1989 Metric Switch Discontinuity
 
-**Problem:** `births-data.json` currently switches from `pct_white` (White incl. Hispanic) to `pct_white_nh` (White NH) at 1989. This creates a visual cliff — e.g., Texas drops from 84% to 49% in one year. Average jump across all states: **-8.28 points**. Worst: New Mexico at **-43.65 points**. Full analysis in `wiki/learnings/data-quirks.md`.
-
-### Proposed Solutions
-
-- [ ] **Option A: Move the switch to 1995 (recommended).** Show `pct_white` through 1994, `pct_white_nh` from 1995+. The transition aligns with the CDC WONDER data source boundary where WNH data is authoritative and complete for all states. The NBER Microdata WNH values (1989–1994) have quality issues — varying unknown rates and a -7 point discrepancy with CDC WONDER for New York — so it's safer to treat them as reference data rather than display data. Drawback: 6 extra years of "White incl. Hispanic" that could show WNH.
-
-- [ ] **Option B: Per-state metric selection.** For each state×year, use `pct_white_nh` if available, otherwise `pct_white`. This avoids the nationwide cliff (e.g., Texas transitions smoothly at 50.49% → 49.00% from 1988 to 1989 since it has WNH in both years). But different states would use different metrics in the same year, and the unknown-rate issues in some states would still cause smaller discontinuities.
-
-- [ ] **Option C: Adjusted WNH estimates for 1978–1988.** For states with `origm` data, redistribute unknown-Hispanic-origin births proportionally. Testing shows this eliminates NY's 12-point gap (43.88% → 55.59% adjusted, matching 1989's 55.86%). But it's speculative estimation and worsens some states (CT adjusted gap: -6.88).
-
-- [ ] **Option D: Visual transition indicator.** Keep the current switch at 1989 but add a clear visual marker (vertical line, color shift, or label change animation) to signal the metric change to the user.
+Previously, switching from `pct_white` to `pct_white_nh` at 1989 caused a massive visual cliff (avg -8.3 pts, worst NM -43.7 pts). **Resolved** by `build_smooth_wnh.py` which produces a continuous smooth series using Hispanic adjustment estimation for pre-1978 and calibrated factors for all years. The 1988→1989 transition is now smooth. Full analysis of the original issue in `wiki/learnings/data-quirks.md`.
 
 ## UX Questions
 

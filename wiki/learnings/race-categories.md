@@ -45,6 +45,36 @@ Codes 52+ are territories (excluded from analysis).
 
 Cross-validated exact match with CDC WONDER White NH for all checked states (2016-2023). KFF footnote confirms: "persons of Hispanic origin may be of any race" — Hispanic listed separately.
 
+## ✅ Mother's Race ≠ Baby's Race (Resolved)
+
+**All post-1980 raw data uses mother's race, not the baby's race.** This means "White NH births" in the source data really means "births to White NH mothers." Our pipeline corrects this using D149 father's race data and historical phase-in (see `data/overview.md`).
+
+### Father's Race Data Availability
+
+| Source | Years | Father's Race? | Father's Hispanic? |
+|--------|-------|---------------|-------------------|
+| NHGIS / NBER Historical (pre-1973) | 1940-1972 | N/A — uses child's race (from both parents) | No |
+| NBER Microdata | 1973-2004 | ✅ `frace` field in raw microdata | Partial (from `origf`/`orfath`) |
+| CDC WONDER D10/D27/D66 | 1995-2024 | ❌ Mother's characteristics only | ❌ |
+| CDC WONDER D149 (Expanded) | 2016-2024 | ✅ Paternal Race (6/15/31 categories) | ✅ Father's Hispanic Origin |
+| KFF | 2016-2023 | ❌ | ❌ |
+
+### Child's Race Algorithm (pre-1980)
+
+Before 1980, the race on birth certificates was the **child's race**, determined by an algorithm:
+- If both parents same race → child = that race
+- If one parent White → child = other parent's race
+- If neither parent White → child = father's race
+
+This means pre-1980 "White" births required BOTH parents to be White, which is actually what we want. However, Hispanic origin was not tracked, so "White" includes Hispanic.
+
+### Missing Father Data Problem
+
+~15-30% of births (rising over time with increasing unmarried births, now ~40% of all births) have father's race "Unknown or Not Stated." Our approach:
+- **2016+:** Use D149 actual data, which counts only births where father is explicitly WNH (option 1 — conservative). ~10% of WNH-mother births have unknown father race.
+- **1980-2015:** Apply per-state correction factor from D149, linearly phased in from 1.0 (1980) to the D149 factor (2016), reflecting increasing interracial marriage.
+- **Pre-1980:** No correction needed — "child's race" was already derived from both parents.
+
 ---
 
 *Update when new race category findings emerge or when adding data from a new era.*

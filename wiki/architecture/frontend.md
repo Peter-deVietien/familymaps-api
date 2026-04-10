@@ -23,8 +23,6 @@
 | `src/app/single-ratio/single-ratio.component.ts` | Main map (~1290 lines), all 6 layers |
 | `src/app/single-ratio/single-ratio.component.html` | Layer selection UI, range/year controls |
 | `src/app/single-ratio/single-ratio.component.scss` | Responsive styles, legend, tooltips |
-| `public/births-data.json` | Birth data by state/year (from best_estimate.csv) |
-| `public/states-10m.json` | US state boundary TopoJSON |
 | `src/environments/environment.ts` | API URL (`https://api.wdwwa.com`) |
 
 ## Architecture Notes
@@ -41,7 +39,7 @@
 3. **County Under 5** — White NH % for under-5 population
 4. **Tracts (FL)** — Florida census tract White NH %
 5. **Block Groups (FL)** — Florida block group White NH %
-6. **Births** — Historical White birth % by state with year navigation
+6. **Births** — Historical both-parent WNH baby % by state with year navigation
 
 ---
 

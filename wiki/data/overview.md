@@ -1,6 +1,6 @@
 # Birth Data Sources — Overview & Coverage
 
-> **Goal:** Compile aggregate birth counts — total births and births by race (targeting White non-Hispanic where available) — by year, state, and county, from 1940 to present.
+> **Goal:** Compile aggregate birth counts — targeting % of births where the baby is White Non-Hispanic (both parents WNH) — by year, state, and county, from 1940 to present. Mother-only WNH is insufficient; we need father's race too.
 >
 > **Scope:** Pre-aggregated counts preferred. Microdata used only where no pre-aggregated source exists (1973–1994 gap).
 
@@ -17,6 +17,8 @@
 | KFF | 2016–2023 | ✅ White NH (validation) | ✅ Downloaded | [kff.md](kff.md) | `data/kff/` |
 | NCHS Public-Use | 1968–2024 | Yes (microdata) | ⏸️ Deprioritized | [nchs.md](nchs.md) | `data/nchs/` |
 | **Combined Output** | 1940–2024 | Best available per year×state | ✅ Generated | [pipeline.md](pipeline.md) | `data/extracted_data/` |
+| **Smooth WNH** | 1940–2024 | Both-parent WNH for all years | ✅ Generated (both-parent corrected) | [pipeline.md](pipeline.md) | `data/extracted_data/smooth_wnh.csv` |
+| CDC WONDER D149 | 2016–2024 | ✅ Father's race + Hispanic origin | ✅ Downloaded | [cdc_wonder.md](cdc_wonder.md) | `data/cdc_wonder/` |
 
 ---
 
@@ -37,14 +39,17 @@
 
 ## Key Issues / Action Items
 
-1. **✅ KFF scraper bug:** Fixed. All 8 years validated.
-2. **✅ CDC WONDER download:** All 3 databases (33,302 rows, 1995–2024).
-3. **✅ KFF White = White NH:** Cross-validated exact match with CDC WONDER.
-4. **✅ 1973–1994 gap:** NBER Microdata streaming download complete (22 years, 1,122 rows).
-5. **✅ 2007–2015 D66 race gap:** RESOLVED — re-queried with "Mother's Bridged Race" (D66.V2).
-6. **✅ 1989-1994 WNH fix:** `origm` → `ormoth` for 1989+ files. Re-run complete.
-7. **🟡 NHGIS ds224 county completeness:** ~48% of county rows lack race data.
-8. **🟢 NBER 1940–1945:** NHGIS provides race data for these years instead.
+1. **✅ Mother-only WNH → Both-parent WNH:** RESOLVED. Pipeline now produces both-parent WNH via D149 actual data (2016+), phased-in correction factor (1980-2015), and no correction for pre-1980 (child's race was already both-parent).
+2. **✅ CDC WONDER D149 downloaded:** 12,393 rows with father's race/ethnicity for 2016-2024. Per-state correction factors computed.
+3. **🟡 NBER Microdata re-processing:** Microdata has `frace` (father's race) for 1973-2004. Could re-process for direct both-parent WNH (~5+ hours). Currently using correction-factor estimation for these years.
+4. **✅ KFF scraper bug:** Fixed. All 8 years validated.
+5. **✅ CDC WONDER download:** All 3 databases (33,302 rows, 1995–2024).
+6. **✅ KFF White = White NH:** Cross-validated exact match with CDC WONDER.
+7. **✅ 1973–1994 gap:** NBER Microdata streaming download complete (22 years, 1,122 rows).
+8. **✅ 2007–2015 D66 race gap:** RESOLVED — re-queried with "Mother's Bridged Race" (D66.V2).
+9. **✅ 1989-1994 WNH fix:** `origm` → `ormoth` for 1989+ files. Re-run complete.
+10. **🟡 NHGIS ds224 county completeness:** ~48% of county rows lack race data.
+11. **🟢 NBER 1940–1945:** NHGIS provides race data for these years instead.
 
 ---
 
@@ -73,6 +78,27 @@ Exhaustive search for pre-aggregated state-level race data. **No pre-aggregated 
 |-------------|------|-------------|
 | `data/extracted_data/all_data.csv` | 8,355 | All sources combined |
 | `data/extracted_data/best_estimate.csv` | 4,317 | Best source per year×state |
+| `data/extracted_data/smooth_wnh.csv` | 4,317 | Smooth WNH series (see below) |
+
+### Smooth Both-Parent WNH Pipeline
+
+**Script:** `data/build_smooth_wnh.py` — produces a smooth `pct_white_nh_smooth` column representing **both-parent WNH** (% of babies where both parents are White Non-Hispanic).
+
+**Method:**
+1. **2016+:** CDC WONDER D149 actual both-parent WNH (father + mother race/ethnicity)
+2. **1995-2015:** CDC WONDER mother-only WNH × per-state both-parent correction factor (from D149)
+3. **1978-1994:** NBER/estimated mother-only WNH × correction factor
+4. **Pre-1978:** Estimated from `pct_white` × Hispanic adjustment × both-parent correction factor
+
+**Both-parent correction factors** (from D149, averaged 2016-2024):
+- National average: 0.794 (both-parent is ~80% of mother-only)
+- Range: 0.578 (Hawaii) to 0.878 (New Hampshire)
+- ~10% of births to WNH mothers have father's race unknown; ~10% have a non-WNH father
+
+**Historical phase-in:**
+- **Pre-1980:** No both-parent correction applied. Birth certificates used "child's race" determined algorithmically from both parents' races, so the data already reflects both-parent status.
+- **1980-2015:** Correction factor linearly interpolated from 1.0 (1980) to the D149 factor (2016), reflecting the gradual increase in interracial marriage (~3% in 1980 → ~19% in 2016).
+- **2016+:** Actual D149 both-parent data used directly.
 
 ---
 
