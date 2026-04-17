@@ -50,7 +50,7 @@ This directory contains the combined output of all downloaded data sources, norm
 
 ---
 
-## Coverage Summary
+## Source coverage snapshot
 
 ### What You Can Compute
 

@@ -1,6 +1,6 @@
-# Wiki Index
+# Backend Wiki Index
 
-> Compact routing table. Read this to decide which wiki files are relevant to the current task.
+> Compact routing table (FastAPI / data pipeline). Read this to decide which wiki files are relevant to the current task.
 
 ## Vision (what we want)
 
@@ -9,9 +9,9 @@
 | Product vision & open questions | `vision/product.md` | Starting a new feature; goals unclear |
 | Births choropleth layer | `vision/births-choropleth.md` | Working on births feature |
 | WDWWA ranking system | `vision/wdwwa-ranking.md` | Working on ranking/scoring |
-| County demographics layers | `vision/county-demographics.md` | Working on county/tract/block group layers |
-| Church events directory | `vision/church-events.md` | Working on church events |
-| Florida detail layers | `vision/florida-detail.md` | Working on FL-specific layers |
+| County demographics layers | `vision/backend-vision-county-demographics.md` | Working on county/tract/block group layers |
+| Church events directory | `vision/backend-vision-church-events.md` | Working on church events |
+| Florida detail layers | `vision/backend-vision-florida-detail.md` | Working on FL-specific layers |
 | Feature vision template | `vision/_template.md` | Creating a new feature |
 
 ## Data Sources (deep reference)
@@ -33,8 +33,8 @@
 |-------|------|--------------|
 | Backend (FastAPI) | `architecture/backend.md` | Modifying API endpoints or structure |
 | Frontend (Angular + Leaflet) | `architecture/frontend.md` | Modifying UI components |
-| API contract | `architecture/api-contract.md` | Changing endpoint shapes |
-| Deployment | `architecture/deployment.md` | Deploy/hosting issues |
+| API contract | `architecture/backend-api-contract.md` | Changing endpoint shapes |
+| Deployment | `architecture/backend-deployment.md` | Deploy/hosting issues |
 
 ## Learnings (hard-won knowledge)
 
@@ -48,8 +48,8 @@
 
 | Topic | File | When to Read |
 |-------|------|--------------|
-| Current status & next steps | `status/current.md` | Starting a session; understanding state |
-| Action/download log | `status/log.md` | Checking what's been done and when |
+| Current status & next steps | `status/backend-current.md` | Starting a session; understanding state |
+| Action/download log | `status/backend-action-log.md` | Checking what's been done and when |
 
 ## Scratchpad
 

@@ -24,9 +24,9 @@ A demographic visualization tool that overlays racial/ethnic composition data on
 Current features (see individual vision pages for detail):
 1. **Births Choropleth** — historical White birth % by state → `births-choropleth.md`
 2. **WDWWA Ranking** — composite county scoring → `wdwwa-ranking.md`
-3. **County Demographics** — current White NH % by county → `county-demographics.md`
-4. **Florida Detail** — tract/block group granularity for FL → `florida-detail.md`
-5. **Church Events** — church event directory → `church-events.md`
+3. **County Demographics** — current White NH % by county → `backend-vision-county-demographics.md`
+4. **Florida Detail** — tract/block group granularity for FL → `backend-vision-florida-detail.md`
+5. **Church Events** — church event directory → `backend-vision-church-events.md`
 
 ### Planned / Desired Features
 
