@@ -29,6 +29,17 @@ app.add_middleware(
         "https://wdwwa.com",
         "https://www.wdwwa.com",
     ],
+    # Also allow private LAN dev origins (any port) so devs can test on
+    # phones via `ng serve --host 0.0.0.0`. Matches RFC 1918 ranges only.
+    allow_origin_regex=(
+        r"^http://("
+        r"localhost"
+        r"|127\.\d+\.\d+\.\d+"
+        r"|10\.\d+\.\d+\.\d+"
+        r"|192\.168\.\d+\.\d+"
+        r"|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+"
+        r")(:\d+)?$"
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

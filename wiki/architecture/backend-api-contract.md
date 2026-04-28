@@ -56,7 +56,10 @@ GET /api/births → state-level birth race data, 1940-2024
 
 ## CORS
 
-The API allows cross-origin requests from the frontend domain.
+`app/main.py` configures `CORSMiddleware` with:
+
+- **`allow_origins`** — explicit production hosts: `localhost:4200`, `localhost:3000`, `familymaps.onrender.com`, `wdwwa.com`, `www.wdwwa.com`
+- **`allow_origin_regex`** — also permits any HTTP origin from RFC 1918 private LAN ranges (`10.*`, `172.16-31.*`, `192.168.*`) on any port. This lets developers test on phones via `ng serve --host 0.0.0.0` without per-IP allowlisting.
 
 ---
 
