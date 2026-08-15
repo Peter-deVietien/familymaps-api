@@ -41,6 +41,9 @@
 
 | 2026-04-10 | Deploy | Pre-baked `births.json` (59KB) from `smooth_wnh.csv`; updated births router to serve static JSON instead of parsing CSV at startup. Pushed to main → Render auto-deployed. | ✅ Live at `https://api.wdwwa.com/api/births` — 85 years, 51 states verified |
 | 2026-04-28 | API | Added `allow_origin_regex` to CORS middleware in `app/main.py` matching RFC 1918 LAN ranges (10/8, 172.16/12, 192.168/16) on any port. Allows `ng serve --host 0.0.0.0` phone testing without per-IP allowlisting. | ✅ Pushed to main → Render auto-deploy |
+| 2026-08-15 | Census ACS | **Census API now requires a key** — unkeyed requests 302 to `https://api.census.gov/data/missing_key.html` and return HTML. Added `CENSUS_API_KEY` to `.env` (note: the older notebooks read the lowercase `census_api_key`; the new script accepts either). | ✅ |
+| 2026-08-15 | Census ACS | Added `scripts/add_asian_nhpi_fields.py` — stdlib-only, idempotent, `--dry-run` supported. Backfills `nhpi_non_hisp` (`B03002_007E`) onto US county, FL county, FL tract and FL block group demographics, and `asian_under5` / `nhpi_under5` / `white_asian_under5` / `white_asian_under5_perc` (`B01001D`, `B01001E`) onto the under-5 dataset. Every level fetched in a single API call including block groups. | ✅ 3222/3222, 67/67, 5160/5160, 13388/13388, 3222/3222 GEOIDs matched |
+| 2026-08-15 | Census ACS | Regenerated 5 files in `app/data/`. Spot checks: Honolulu county white-only 17.4% → white+asian 68.7% (NHPI alone is 93,615 there, which is why NHPI was included rather than Asian-only). Santa Clara under-5 19.5% → 57.8%. | ⏳ Committed/deployed? — see backend-current.md |
 
 ---
 

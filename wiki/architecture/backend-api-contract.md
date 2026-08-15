@@ -30,6 +30,38 @@ GET /api/demographics/fl_tracts              → FL tract demographics
 GET /api/demographics/fl_block_groups        → FL block group demographics
 ```
 
+### Race composition shape
+
+`us_counties`, `fl_counties`, `fl_tracts` and `fl_block_groups` share one schema, all from ACS 5-year 2023 table **B03002**:
+
+```
+GEOID, name, total_pop, white_non_hisp, black_non_hisp,
+native_am_non_hisp, asian_non_hisp, nhpi_non_hisp, hisp_any_race, white_hisp
+```
+
+`nhpi_non_hisp` (`B03002_007E`, Native Hawaiian / Other Pacific Islander alone non-Hispanic) was added 2026-08-15 to back the frontend's White + Asian toggle.
+
+### Under-5 shape
+
+```
+GEOID, name, total_pop, total_male_under5, total_female_under5,
+white_nh_total, white_nh_male_under5, white_nh_female_under5,
+total_under5, white_nh_under5, white_nh_under5_perc,
+asian_male_under5, asian_female_under5, asian_under5,
+nhpi_male_under5, nhpi_female_under5, nhpi_under5,
+white_asian_under5, white_asian_under5_perc
+```
+
+The Asian/NHPI under-5 fields come from **B01001D** and **B01001E**. Those are race-*alone* counts of any ethnicity — the B01001 race iterations have no "not Hispanic" variant — so they are a close but not exact analogue to the B03002 figures. Roughly 2% of Asians identify as Hispanic.
+
+### Regenerating
+
+```bash
+python3 scripts/add_asian_nhpi_fields.py [--dry-run]
+```
+
+Stdlib-only, idempotent, joins on GEOID and reports match counts. Requires `CENSUS_API_KEY` in `.env` — **the Census API now rejects unkeyed requests**, 302-ing to `missing_key.html`.
+
 ## Births Data
 
 ```
