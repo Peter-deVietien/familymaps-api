@@ -62,7 +62,7 @@ Added 2026-08-19 from CDC PLACES. `obesity_pct` is the crude share of adults 18+
 
 `brfss_year` is per-county (2023 or 2022) because the 2025 PLACES release omits Kentucky and Pennsylvania entirely and those 187 counties fall back to the 2024 release. **Null for all 78 Puerto Rico municipios** (3,144 of 3,222 populated) — PLACES covers 50 states + DC only.
 
-This is a **standalone dataset, not a WDWWA rank factor.** Kept separate from `us_counties_percentages` deliberately so it cannot change rank output until someone decides it should. See [../data/cdc_places.md](../data/cdc_places.md).
+Kept as a standalone file rather than a `us_counties_percentages` field. The frontend joins crude `obesity_pct` onto the rank input itself (same pattern as `black_pct`) and also paints it as its own layer. See [../data/cdc_places.md](../data/cdc_places.md).
 
 Regenerate with `python3 scripts/download_cdc_places_obesity.py && python3 scripts/build_obesity_dataset.py`.
 

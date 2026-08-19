@@ -6,7 +6,7 @@ A composite county-level scoring system that ranks counties based on multiple de
 
 ## Current State
 
-- **Factors:** Female %, Trump 2024 %, median age, population, White NH %
+- **Factors:** Female %, Trump 2024 %, median age, population, White NH %, Black NH % (inverted), pleasant days/yr, obesity % (inverted)
 - **Layer:** Rank layer on the single-ratio map page
 - **Data:** Served from `US_county_percentages.json` via API
 

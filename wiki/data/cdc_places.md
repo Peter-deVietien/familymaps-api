@@ -95,7 +95,7 @@ python3 scripts/download_cdc_places_obesity.py   # both releases -> CSV
 python3 scripts/build_obesity_dataset.py [--dry-run]
 ```
 
-Output lands in `data/extracted_data/county_obesity.csv` (gitignored) and builds `app/data/US_county_obesity.json` (committed and served at `/api/demographics/us_counties_obesity`).
+Output lands in `data/extracted_data/county_obesity.csv` (gitignored) and builds `app/data/US_county_obesity.json` (committed and served at `/api/demographics/us_counties_obesity`). The frontend paints that file as its own layer and joins crude `obesity_pct` onto the WDWWA rank as the 8th factor (`reverse: true`).
 
 The build step joins onto the county roster in `US_county_percentages.json` so the output always carries the same 3,222 counties in the same order as every other county dataset, with canonical display names. PLACES' own `locationname` is a bare stem ("Orleans", "Capitol") that cannot be turned into a display name without knowing whether the county is a parish, borough, independent city or planning region.
 
