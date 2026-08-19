@@ -34,12 +34,14 @@ Nothing actively in progress.
 
 ## Recently Completed
 
+- ✅ **County obesity dataset (2026-08-19)** — new `GET /api/demographics/us_counties_obesity` serving CDC PLACES adult obesity (BMI ≥ 30, adults 18+), crude and age-adjusted with 95% CIs. 3,144 of 3,222 counties populated; nulls are all Puerto Rico. Coalesces two PLACES releases because the newest one omits Kentucky and Pennsylvania entirely. **Deliberately a standalone dataset, not a WDWWA rank factor** — adding it to the rank is an open decision. Full details in `data/cdc_places.md`.
 - ✅ **Cache correctness (2026-08-19)** — data endpoints now send `Cache-Control: public, max-age=0, must-revalidate` and answer 304 to conditional requests via `app/caching.py`. Previously they sent no `Cache-Control` at all, so browsers guessed freshness from file age and served stale JSON for days. See `architecture/backend-api-contract.md` → Caching for the three traps involved.
 - ✅ **County climate metric (2026-08-19)** — `pleasant_days` added to `US_county_percentages.json` as the 7th WDWWA rank factor. Average days/yr with a high of 60–85°F, a low of 40–68°F and no measurable rain, from 30 years of NOAA nClimGrid-Daily county area averages. 3,109 of 3,222 counties populated; CONUS-only, so AK/HI/PR are null. Three new scripts, full details in `data/nclimgrid.md`.
 - ✅ **Asian/NHPI demographics deployed** — the Aug 15 regenerated files were committed in `34c3f3d` and verified live; `nhpi_non_hisp` is present in the production `us_counties` response.
 - ✅ **Production deployment fixed** — births endpoint was broken on Render because `smooth_wnh.csv` was gitignored. Pre-baked display data as `app/data/births.json` (59KB). All API endpoints now serve static files from `app/data/`. Verified live at `https://api.wdwwa.com`.
 
 ## What's Next
+- [ ] **Decide whether obesity becomes a WDWWA rank factor** — the data is live at `us_counties_obesity` but is not wired into the composite score. Adding it would make 8 factors (dropping each existing one from ~1/7 to ~1/8 of the influence) and would unrank nothing new, since the 78 null counties are Puerto Rico, which is already absent from the rank set. Open question: crude or age-adjusted, and which direction counts as desirable.
 - [ ] **Asian births data** — the frontend wants White + Asian on the births page but `/api/births` has no Asian series. Raw CDC WONDER D66 (2007+) and KFF (2016–2023) files *do* carry Asian counts; `extract_all_data.py` parses KFF's `Asian` column but only uses it to compute `total_births`. A both-parent Asian equivalent would need new D149 queries and only exists 2016+. Discussed in the frontend wiki at `~/familymaps/wiki/features/race-toggle.md`.
 - [ ] Re-process NBER Microdata (1973-2004) with `frace` for direct both-parent WNH (~5+ hours download)
 - [ ] Decide on county-level births data (currently state-only)
@@ -68,6 +70,8 @@ Nothing actively in progress.
 | `scripts/download_nclimgrid.py` | Downloads NOAA county climate CSVs (resumable) |
 | `scripts/compute_pleasant_days.py` | Counts pleasant days/yr per county |
 | `scripts/add_pleasant_days_field.py` | Merges `pleasant_days` into the served percentages JSON |
+| `scripts/download_cdc_places_obesity.py` | Pulls county obesity from CDC PLACES (2 releases, coalesced) |
+| `scripts/build_obesity_dataset.py` | Builds `app/data/US_county_obesity.json` from the PLACES CSV |
 
 ## Quick Decision Guide
 

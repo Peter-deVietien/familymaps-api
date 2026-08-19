@@ -106,6 +106,26 @@ Same trap applies to the older nClimDiv county files, whose readme does document
 
 **Always verify a GEOID join by comparing county *names*, not row counts.** Row counts matched perfectly while every California county was mislabelled.
 
+## CDC PLACES: "Age-Adjusted" Is Not An Age Breakdown
+
+The `OBESITY` measure offers exactly two value types, `CrdPrv` and `AgeAdjPrv`, and **neither is age-specific.** Both cover all adults 18+. Age-adjustment reweights a county's all-adult rate to a standard age distribution so a retirement county and a college town can be compared fairly — it does not isolate any age band.
+
+This reads exactly like an age breakdown and it is not. PLACES has **no age stratification at any geography**. If county obesity by age group is ever needed, IHME's US High BMI dataset is the only source (county × age × sex × race), and it stops at 2019 under a non-commercial licence.
+
+## CDC PLACES: The 2025 Release Silently Drops Kentucky And Pennsylvania
+
+BRFSS produced no usable 2023 data for KY or PA, so the 2025 PLACES release omits all 187 of their counties. They are not present-with-null, they are **absent** — `stateabbr=KY` returns `[]`.
+
+A naive adoption of the newest release leaves both states blank on the map and, worse, unranks them in the WDWWA composite (which drops any county with a null field). Fix is to coalesce the 2024 release (BRFSS 2022) underneath and record the BRFSS year per county. CDC does the same thing internally: 5 of the 2025 release's 40 measures are carried over from BRFSS 2022.
+
+Each PLACES release year is a **separate Socrata dataset id** — there is no stable "latest" URL, so a newer release means editing `RELEASES` in `download_cdc_places_obesity.py`.
+
+## CDC PLACES: A National Total Hides In The County File
+
+The county dataset includes a United States aggregate row under `locationid = "59"` — neither a county nor a state FIPS. It surfaced as an orphan when joining against the county roster. Filter to 5-digit `locationid` values.
+
+Keep it in mind as a free sanity check: `59` reads 32.8% for BRFSS 2023, matching CDC's published national adult obesity rate. Note the **median county (38.0%) sits well above the national rate** because the national figure is population-weighted toward big, leaner metros — do not treat the two as comparable.
+
 ## NBER Microdata: 3 States Fail Quality Validation
 
 New York, District of Columbia, and Rhode Island have NBER→CDC WNH ratio discrepancies >3 percentage points at the 1994→1995 boundary. New York is the worst: NBER 1994 shows WNH ratio of 0.707, but CDC 1995 shows 0.610. This is likely caused by incomplete reporting of Hispanic origin in the pre-1989 `origm` field and residual unknown-rate effects in the 1989-1994 `ormoth` field for these states. Use estimation rather than NBER actual WNH data for these 3 states.

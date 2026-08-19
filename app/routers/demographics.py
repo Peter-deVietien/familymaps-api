@@ -13,6 +13,7 @@ DEMO_FILES = {
     "us_counties": "US_county_demographics.json",
     "us_counties_under5": "US_county_under5_demographics.json",
     "us_counties_percentages": "US_county_percentages.json",
+    "us_counties_obesity": "US_county_obesity.json",
     "fl_counties": "FL_county_demographics.json",
     "fl_tracts": "FL_tract_demographics.json",
     "fl_block_groups": "FL_block_group_demographics.json",
@@ -24,7 +25,7 @@ async def get_demographics(dataset: str, request: Request) -> Response:
     """Serve demographics JSON files by dataset name.
 
     Datasets: us_counties, us_counties_under5, us_counties_percentages,
-              fl_counties, fl_tracts, fl_block_groups
+              us_counties_obesity, fl_counties, fl_tracts, fl_block_groups
     """
     filename = DEMO_FILES.get(dataset)
     if not filename:

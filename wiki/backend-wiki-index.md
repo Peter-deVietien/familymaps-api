@@ -26,6 +26,7 @@
 | NBER Microdata (1973–1994) | `data/nber_microdata.md` | Working with 1973–1994 gap data |
 | NCHS public-use (deprioritized) | `data/nchs.md` | Only if other sources fail |
 | NOAA nClimGrid-Daily (county climate) | `data/nclimgrid.md` | Working on `pleasant_days` or any weather metric |
+| CDC PLACES (county health measures) | `data/cdc_places.md` | Working on obesity or any BRFSS-derived health metric |
 | Extraction pipeline & output schema | `data/pipeline.md` | Running/modifying extract_all_data.py |
 
 ## Architecture (how it's built)

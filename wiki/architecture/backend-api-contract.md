@@ -25,6 +25,7 @@ All demographics endpoints return **JSON** arrays/objects.
 GET /api/demographics/us_counties            → county-level demographics
 GET /api/demographics/us_counties_under5     → county under-5 demographics
 GET /api/demographics/us_counties_percentages → WDWWA factor percentages + climate
+GET /api/demographics/us_counties_obesity    → county adult obesity prevalence
 GET /api/demographics/fl_counties            → FL county demographics
 GET /api/demographics/fl_tracts              → FL tract demographics
 GET /api/demographics/fl_block_groups        → FL block group demographics
@@ -50,6 +51,20 @@ GEOID, name, total_pop, female_pct, median_age, white_pct, trump_pct, pleasant_d
 `pleasant_days` (added 2026-08-19) is the average number of days per year with a high of 60–85°F, a low of 40–68°F and no measurable rain, from 30 years of NOAA nClimGrid-Daily county averages. **CONUS only** — `null` for Alaska, Hawaii and Puerto Rico (113 of 3,222 records). The frontend's rank algorithm already drops any county with a null field, so nulls need no special handling. See [../data/nclimgrid.md](../data/nclimgrid.md).
 
 Regenerate with `python3 scripts/add_pleasant_days_field.py`.
+
+### Obesity shape
+
+```
+GEOID, name, total_pop, obesity_pct, obesity_pct_age_adj, ci_low, ci_high, brfss_year
+```
+
+Added 2026-08-19 from CDC PLACES. `obesity_pct` is the crude share of adults 18+ with BMI ≥ 30; `obesity_pct_age_adj` is the same figure reweighted to a standard age distribution. **Neither is age-specific** — both cover all adults, and age-adjustment only neutralises the county's age composition. `ci_low`/`ci_high` are the 95% interval on the crude rate, which is wide for small counties because the values are modelled rather than measured.
+
+`brfss_year` is per-county (2023 or 2022) because the 2025 PLACES release omits Kentucky and Pennsylvania entirely and those 187 counties fall back to the 2024 release. **Null for all 78 Puerto Rico municipios** (3,144 of 3,222 populated) — PLACES covers 50 states + DC only.
+
+This is a **standalone dataset, not a WDWWA rank factor.** Kept separate from `us_counties_percentages` deliberately so it cannot change rank output until someone decides it should. See [../data/cdc_places.md](../data/cdc_places.md).
+
+Regenerate with `python3 scripts/download_cdc_places_obesity.py && python3 scripts/build_obesity_dataset.py`.
 
 ### Under-5 shape
 

@@ -51,6 +51,10 @@
 | 2026-08-19 | Wiki | New `data/nclimgrid.md`, indexed. Updated data-quirks, api-contract. | ✅ |
 | 2026-08-19 | Caching | **Root-caused the rank map going black on phones.** Endpoints sent ETag/Last-Modified but no `Cache-Control`, so browsers used the RFC 9111 heuristic (~10% of file age) and returning visitors served pre-`pleasant_days` JSON for days without revalidating. Added `app/caching.py` with `public, max-age=0, must-revalidate` plus real `If-None-Match` handling across geo, demographics and births. Three silent traps: bare `FileResponse` never compares ETags (that lives in `StaticFiles`), it defers `stat()` so `stat_result=` must be passed or the ETag header is absent at comparison time, and Cloudflare weakens ETags to `W/"..."` on compression so the prefix must be normalised. | ✅ Verified live through CF: match→304/0, weak→304/0, stale→200/580035 |
 
+| 2026-08-19 | CDC PLACES | Added `scripts/download_cdc_places_obesity.py` + `scripts/build_obesity_dataset.py` and the `us_counties_obesity` endpoint. County adult obesity (BMI ≥ 30, adults 18+) from the PLACES Socrata API, crude and age-adjusted plus 95% CI. Coalesces the 2025 release (BRFSS 2023) over the 2024 release (BRFSS 2022) because BRFSS 2023 omits Kentucky and Pennsylvania outright — 2,956 counties on 2023, 188 backfilled from 2022. Filtered out a national aggregate row hiding in the county file under `locationid="59"`. No CT crosswalk needed: PLACES already uses the 9 planning regions. | ✅ 3,144/3,222 populated (nulls are all 78 PR municipios); range 16.7% Boulder CO – 52.9% Perry AL, median 38.0%, national 32.8% |
+| 2026-08-19 | CDC PLACES | Kept as a **standalone dataset rather than a `us_counties_percentages` field**, so it cannot alter WDWWA rank output until that is a deliberate decision. This is the one deviation from the `pleasant_days` precedent. | ✅ |
+| 2026-08-19 | Wiki | New `data/cdc_places.md`, indexed. Updated api-contract, data-quirks (3 new entries incl. the "age-adjusted is not an age breakdown" trap). | ✅ |
+
 ---
 
 *Append new entries here. Don't modify old entries.*
