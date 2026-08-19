@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
+
+from ..caching import file_response
 
 router = APIRouter(prefix="/api/geo", tags=["geography"])
 
@@ -17,7 +19,7 @@ GEO_FILES = {
 
 
 @router.get("/{level}")
-async def get_geo(level: str):
+async def get_geo(level: str, request: Request) -> Response:
     """Serve TopoJSON geography files by level name.
 
     Levels: us_counties, fl_counties, fl_tracts, fl_block_groups
@@ -31,4 +33,4 @@ async def get_geo(level: str):
     filepath = DATA_DIR / filename
     if not filepath.exists():
         raise HTTPException(status_code=404, detail=f"Data file not found: {filename}")
-    return FileResponse(filepath, media_type="application/json")
+    return file_response(request, filepath)

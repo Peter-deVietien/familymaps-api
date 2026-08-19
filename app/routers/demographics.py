@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
+
+from ..caching import file_response
 
 router = APIRouter(prefix="/api/demographics", tags=["demographics"])
 
@@ -18,7 +20,7 @@ DEMO_FILES = {
 
 
 @router.get("/{dataset}")
-async def get_demographics(dataset: str):
+async def get_demographics(dataset: str, request: Request) -> Response:
     """Serve demographics JSON files by dataset name.
 
     Datasets: us_counties, us_counties_under5, us_counties_percentages,
@@ -33,4 +35,4 @@ async def get_demographics(dataset: str):
     filepath = DATA_DIR / filename
     if not filepath.exists():
         raise HTTPException(status_code=404, detail=f"Data file not found: {filename}")
-    return FileResponse(filepath, media_type="application/json")
+    return file_response(request, filepath)
