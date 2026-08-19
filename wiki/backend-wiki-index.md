@@ -25,6 +25,7 @@
 | NBER Historical (1940–1968) | `data/nber_historical.md` | Working with pre-1968 data |
 | NBER Microdata (1973–1994) | `data/nber_microdata.md` | Working with 1973–1994 gap data |
 | NCHS public-use (deprioritized) | `data/nchs.md` | Only if other sources fail |
+| NOAA nClimGrid-Daily (county climate) | `data/nclimgrid.md` | Working on `pleasant_days` or any weather metric |
 | Extraction pipeline & output schema | `data/pipeline.md` | Running/modifying extract_all_data.py |
 
 ## Architecture (how it's built)

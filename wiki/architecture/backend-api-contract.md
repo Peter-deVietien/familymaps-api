@@ -24,7 +24,7 @@ All demographics endpoints return **JSON** arrays/objects.
 ```
 GET /api/demographics/us_counties            → county-level demographics
 GET /api/demographics/us_counties_under5     → county under-5 demographics
-GET /api/demographics/us_counties_percentages → WDWWA factor percentages
+GET /api/demographics/us_counties_percentages → WDWWA factor percentages + climate
 GET /api/demographics/fl_counties            → FL county demographics
 GET /api/demographics/fl_tracts              → FL tract demographics
 GET /api/demographics/fl_block_groups        → FL block group demographics
@@ -40,6 +40,16 @@ native_am_non_hisp, asian_non_hisp, nhpi_non_hisp, hisp_any_race, white_hisp
 ```
 
 `nhpi_non_hisp` (`B03002_007E`, Native Hawaiian / Other Pacific Islander alone non-Hispanic) was added 2026-08-15 to back the frontend's White + Asian toggle.
+
+### WDWWA percentages shape
+
+```
+GEOID, name, total_pop, female_pct, median_age, white_pct, trump_pct, pleasant_days
+```
+
+`pleasant_days` (added 2026-08-19) is the average number of days per year with a high of 60–85°F, a low of 40–68°F and no measurable rain, from 30 years of NOAA nClimGrid-Daily county averages. **CONUS only** — `null` for Alaska, Hawaii and Puerto Rico (113 of 3,222 records). The frontend's rank algorithm already drops any county with a null field, so nulls need no special handling. See [../data/nclimgrid.md](../data/nclimgrid.md).
+
+Regenerate with `python3 scripts/add_pleasant_days_field.py`.
 
 ### Under-5 shape
 

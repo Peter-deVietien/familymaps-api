@@ -2,21 +2,7 @@
 
 > Living document. Read this to understand what's done, what's in progress, and what's next.
 
-*Last updated: 2026-08-15*
-
-## ⚠️ Uncommitted Data Changes
-
-`app/data/` has **regenerated demographics files not yet committed or deployed**. Until they're pushed, `https://api.wdwwa.com` still serves the old shape and the frontend's White + Asian toggle is only partially correct (Hawaii reads low; Under 5 falls back to white-only).
-
-| File | Added |
-|------|-------|
-| `US_county_demographics.json` | `nhpi_non_hisp` |
-| `FL_county_demographics.json` | `nhpi_non_hisp` |
-| `FL_tract_demographics.json` | `nhpi_non_hisp` |
-| `FL_block_group_demographics.json` | `nhpi_non_hisp` |
-| `US_county_under5_demographics.json` | `asian_under5`, `nhpi_under5`, `white_asian_under5`, `white_asian_under5_perc` |
-
-Regenerate any time with `python3 scripts/add_asian_nhpi_fields.py` (needs `CENSUS_API_KEY` in `.env`).
+*Last updated: 2026-08-19*
 
 ## Overall State
 
@@ -48,11 +34,11 @@ Nothing actively in progress.
 
 ## Recently Completed
 
+- ✅ **County climate metric (2026-08-19)** — `pleasant_days` added to `US_county_percentages.json` as the 7th WDWWA rank factor. Average days/yr with a high of 60–85°F, a low of 40–68°F and no measurable rain, from 30 years of NOAA nClimGrid-Daily county area averages. 3,109 of 3,222 counties populated; CONUS-only, so AK/HI/PR are null. Three new scripts, full details in `data/nclimgrid.md`.
+- ✅ **Asian/NHPI demographics deployed** — the Aug 15 regenerated files were committed in `34c3f3d` and verified live; `nhpi_non_hisp` is present in the production `us_counties` response.
 - ✅ **Production deployment fixed** — births endpoint was broken on Render because `smooth_wnh.csv` was gitignored. Pre-baked display data as `app/data/births.json` (59KB). All API endpoints now serve static files from `app/data/`. Verified live at `https://api.wdwwa.com`.
 
 ## What's Next
-
-- [ ] **Commit + deploy the regenerated `app/data/` demographics files** (see warning at top)
 - [ ] **Asian births data** — the frontend wants White + Asian on the births page but `/api/births` has no Asian series. Raw CDC WONDER D66 (2007+) and KFF (2016–2023) files *do* carry Asian counts; `extract_all_data.py` parses KFF's `Asian` column but only uses it to compute `total_births`. A both-parent Asian equivalent would need new D149 queries and only exists 2016+. Discussed in the frontend wiki at `~/familymaps/wiki/features/race-toggle.md`.
 - [ ] Re-process NBER Microdata (1973-2004) with `frace` for direct both-parent WNH (~5+ hours download)
 - [ ] Decide on county-level births data (currently state-only)
@@ -78,6 +64,9 @@ Nothing actively in progress.
 | `app/data/births.json` | Pre-baked births display data (59KB, committed to git) |
 | `app/routers/births.py` | API endpoint serving births data (loads births.json) |
 | `scripts/add_asian_nhpi_fields.py` | Backfills Asian/NHPI fields onto served demographics JSON |
+| `scripts/download_nclimgrid.py` | Downloads NOAA county climate CSVs (resumable) |
+| `scripts/compute_pleasant_days.py` | Counts pleasant days/yr per county |
+| `scripts/add_pleasant_days_field.py` | Merges `pleasant_days` into the served percentages JSON |
 
 ## Quick Decision Guide
 

@@ -94,6 +94,18 @@ Exhaustive search (NCHS NVSR, VSUS volumes, NCHS Series 24, CDC data.gov, KIDS C
 
 **Remaining caveat:** ~10% of births have father's race "Unknown/Not Stated" — these are excluded from the both-parent count, which may slightly undercount WNH births.
 
+## NOAA nClimGrid: County Codes Are Not FIPS (And Alabama Hides It)
+
+The county CSVs at `nclimgrid-daily/access/averages/` look like they are keyed by 5-digit FIPS. They are not. NCEI numbers the CONUS states **01–48 alphabetically**, omitting Alaska and Hawaii, so `04` is California rather than Arizona and `17` is Maine rather than Illinois.
+
+**Alabama is `01` under both schemes.** Spot-checking the first row of the file returns `01001, AL: Autauga`, which looks like a clean confirmation that the codes are FIPS — and every row from Arizona onward is then silently attributed to the wrong state. The failure is invisible until you join against another dataset and compare names.
+
+The trailing **three** digits *are* a genuine county FIPS. Rebuild GEOIDs as `STATE_FIPS[abbrev] + code[-3:]`, taking the abbreviation from the name field (`"CA: Contra Costa County"`). DC is filed as `18511` under Maryland's code but is really `11001`.
+
+Same trap applies to the older nClimDiv county files, whose readme does document it: *"STATE-CODE as indicated in State Code Table... Range of values is 01-48."*
+
+**Always verify a GEOID join by comparing county *names*, not row counts.** Row counts matched perfectly while every California county was mislabelled.
+
 ## NBER Microdata: 3 States Fail Quality Validation
 
 New York, District of Columbia, and Rhode Island have NBER→CDC WNH ratio discrepancies >3 percentage points at the 1994→1995 boundary. New York is the worst: NBER 1994 shows WNH ratio of 0.707, but CDC 1995 shows 0.610. This is likely caused by incomplete reporting of Hispanic origin in the pre-1989 `origm` field and residual unknown-rate effects in the 1989-1994 `ormoth` field for these states. Use estimation rather than NBER actual WNH data for these 3 states.
