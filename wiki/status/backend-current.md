@@ -34,6 +34,7 @@ Nothing actively in progress.
 
 ## Recently Completed
 
+- ✅ **Cache correctness (2026-08-19)** — data endpoints now send `Cache-Control: public, max-age=0, must-revalidate` and answer 304 to conditional requests via `app/caching.py`. Previously they sent no `Cache-Control` at all, so browsers guessed freshness from file age and served stale JSON for days. See `architecture/backend-api-contract.md` → Caching for the three traps involved.
 - ✅ **County climate metric (2026-08-19)** — `pleasant_days` added to `US_county_percentages.json` as the 7th WDWWA rank factor. Average days/yr with a high of 60–85°F, a low of 40–68°F and no measurable rain, from 30 years of NOAA nClimGrid-Daily county area averages. 3,109 of 3,222 counties populated; CONUS-only, so AK/HI/PR are null. Three new scripts, full details in `data/nclimgrid.md`.
 - ✅ **Asian/NHPI demographics deployed** — the Aug 15 regenerated files were committed in `34c3f3d` and verified live; `nhpi_non_hisp` is present in the production `us_counties` response.
 - ✅ **Production deployment fixed** — births endpoint was broken on Render because `smooth_wnh.csv` was gitignored. Pre-baked display data as `app/data/births.json` (59KB). All API endpoints now serve static files from `app/data/`. Verified live at `https://api.wdwwa.com`.

@@ -96,6 +96,34 @@ GET /api/births → state-level birth race data, 1940-2024
 - 2016+: D149 actual both-parent WNH; 1995-2015: CDC mother-only adjusted by correction factor; pre-1995: estimated
 - State keys are FIPS codes
 
+## Caching
+
+All data endpoints (`/api/geo/*`, `/api/demographics/*`, `/api/births`) send:
+
+```
+Cache-Control: public, max-age=0, must-revalidate
+```
+
+and answer `304 Not Modified` to a matching `If-None-Match`. Helpers live in `app/caching.py`.
+
+Three traps, each of which fails silently:
+
+1. **FastAPI sends no `Cache-Control` by default.** `FileResponse` emits `ETag` and `Last-Modified` only. With no explicit freshness a browser applies the RFC 9111 §4.2.2 heuristic — about 10% of the response's age — and these files go months between changes, so clients served copies over a week old **without ever contacting the origin**. A deployed field looked missing on phones that had visited before while cold desktops rendered it correctly. Added 2026-08-19.
+
+2. **A bare `FileResponse` never checks `If-None-Match`.** That comparison lives in Starlette's `StaticFiles`, not the response class. Adding `must-revalidate` without implementing it would have re-downloaded the 4.4 MB county TopoJSON on *every* page load.
+
+3. **`FileResponse` defers its `stat()` until send time.** `response.headers["etag"]` does not exist at construction unless `stat_result=` is passed, so a comparison written the obvious way reads `None` and never matches — full body every time, with no error.
+
+Also note **Cloudflare weakens ETags** when it compresses: the origin computes `"abc"` but the browser sends back `W/"abc"`. `_normalize()` strips the `W/` prefix before comparing, otherwise nothing ever matches.
+
+Verify with:
+
+```bash
+ET=$(curl -s -D - -o /dev/null "$URL" | awk 'tolower($1)=="etag:"{print $2}' | tr -d '\r')
+curl -s -o /dev/null -w '%{http_code}/%{size_download}\n' -H "If-None-Match: $ET" "$URL"   # want 304/0
+curl -s -o /dev/null -w '%{http_code}/%{size_download}\n' -H 'If-None-Match: "x"' "$URL"    # want 200/<size>
+```
+
 ## CORS
 
 `app/main.py` configures `CORSMiddleware` with:
