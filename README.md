@@ -36,6 +36,8 @@ The API will be available at `http://localhost:8000`. Interactive docs at `http:
 | `GET /api/demographics/us_counties` | US county demographics |
 | `GET /api/demographics/us_counties_under5` | US county under-5 demographics |
 | `GET /api/demographics/us_counties_percentages` | US county percentages (WDWWA factors) |
+| `GET /api/demographics/us_counties_obesity` | US county adult obesity (CDC PLACES) |
+| `GET /api/demographics/us_counties_economy` | US county 10-year job growth (BLS QCEW) and business applications (Census BFS) per resident |
 | `GET /api/demographics/fl_counties` | Florida county demographics |
 | `GET /api/demographics/fl_tracts` | Florida tract demographics |
 | `GET /api/demographics/fl_block_groups` | Florida block group demographics |
@@ -49,3 +51,10 @@ The API will be available at `http://localhost:8000`. Interactive docs at `http:
 ## Data Scripts
 
 Jupyter notebooks in `scripts/` download and prepare data from the Census API.
+
+County economy data (no API key needed):
+
+```bash
+python3 scripts/download_economy_data.py
+python3 scripts/build_economy_dataset.py [--dry-run]
+```
