@@ -38,6 +38,7 @@ The API will be available at `http://localhost:8000`. Interactive docs at `http:
 | `GET /api/demographics/us_counties_percentages` | US county percentages (WDWWA factors) |
 | `GET /api/demographics/us_counties_obesity` | US county adult obesity (CDC PLACES) |
 | `GET /api/demographics/us_counties_economy` | US county 10-year job growth (BLS QCEW) and business applications (Census BFS) per resident |
+| `GET /api/demographics/us_counties_fertility` | US county White NH total fertility rate, estimated from Census population pyramids |
 | `GET /api/demographics/fl_counties` | Florida county demographics |
 | `GET /api/demographics/fl_tracts` | Florida tract demographics |
 | `GET /api/demographics/fl_block_groups` | Florida block group demographics |
@@ -57,4 +58,10 @@ County economy data (no API key needed):
 ```bash
 python3 scripts/download_economy_data.py
 python3 scripts/build_economy_dataset.py [--dry-run]
+```
+
+County fertility data (no API key needed; downloads the Census file on first run):
+
+```bash
+python3 scripts/build_fertility_dataset.py [--dry-run]
 ```
