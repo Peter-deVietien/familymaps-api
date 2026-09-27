@@ -8,8 +8,12 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./churchevents.db")
 
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# SQLAlchemy 2.1 made psycopg 3 the default driver for postgresql:// URLs;
+# requirements.txt ships psycopg2, so name it explicitly.
+for prefix in ("postgres://", "postgresql://"):
+    if DATABASE_URL.startswith(prefix):
+        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len(prefix):]
+        break
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_size=2, max_overflow=3, pool_timeout=10)
 SessionLocal = sessionmaker(bind=engine)
